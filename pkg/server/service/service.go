@@ -294,13 +294,15 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 func (m *Manager) LaunchHealthCheck() {
 	backendConfigs := make(map[string]*healthcheck.BackendConfig)
 
+	healthcheck.GetHealthCheck(m.metricsRegistry).CancelHealthCheck(true)
+
 	for serviceName, balancers := range m.balancers {
 		ctx := log.With(context.Background(), log.Str(log.ServiceName, serviceName))
 
 		service := m.configs[serviceName].LoadBalancer
 
 		// Health Check
-		hcOpts := buildHealthCheckOptions(ctx, balancers, serviceName, service.HealthCheck)
+		hcOpts := buildHealthCheckOptions(ctx, balancers, m.configs[serviceName], serviceName, service.HealthCheck)
 		if hcOpts == nil {
 			continue
 		}
@@ -313,7 +315,13 @@ func (m *Manager) LaunchHealthCheck() {
 	healthcheck.GetHealthCheck(m.metricsRegistry).SetBackendsConfiguration(context.Background(), backendConfigs)
 }
 
-func buildHealthCheckOptions(ctx context.Context, lb healthcheck.Balancer, backend string, hc *dynamic.ServerHealthCheck) *healthcheck.Options {
+func buildHealthCheckOptions(
+	ctx context.Context,
+	lb healthcheck.Balancer,
+	serviceInfo *runtime.ServiceInfo,
+	backend string,
+	hc *dynamic.ServerHealthCheck,
+) *healthcheck.Options {
 	if hc == nil {
 		return nil
 	}
@@ -364,13 +372,19 @@ func buildHealthCheckOptions(ctx context.Context, lb healthcheck.Balancer, backe
 		Interval:        interval,
 		Timeout:         timeout,
 		LB:              lb,
+		ServiceInfo:     serviceInfo,
 		Hostname:        hc.Hostname,
 		Headers:         hc.Headers,
 		FollowRedirects: followRedirects,
 	}
 }
 
-func (m *Manager) getLoadBalancer(ctx context.Context, serviceName string, service *dynamic.ServersLoadBalancer, fwd http.Handler) (healthcheck.BalancerStatusHandler, error) {
+func (m *Manager) getLoadBalancer(
+	ctx context.Context,
+	serviceName string,
+	service *dynamic.ServersLoadBalancer,
+	fwd http.Handler,
+) (healthcheck.BalancerStatusHandler, error) {
 	logger := log.FromContext(ctx)
 	logger.Debug("Creating load-balancer")
 

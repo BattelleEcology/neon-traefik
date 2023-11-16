@@ -94,6 +94,14 @@ func getHTTPServiceSection(services map[string]*runtime.ServiceInfo) *section {
 			countErrors++
 		case runtime.StatusWarning:
 			countWarnings++
+		default:
+			// Rollup service status from load balancer server health checks.
+			switch svc.GetAllStatusRollup() {
+			case runtime.StatusDisabled:
+				countErrors++
+			case runtime.StatusWarning:
+				countWarnings++
+			}
 		}
 	}
 

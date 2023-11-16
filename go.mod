@@ -21,7 +21,9 @@ require (
 	github.com/gambol99/go-marathon v0.0.0-20180614232016-99a156b96fb2
 	github.com/go-acme/lego/v4 v4.14.0
 	github.com/go-check/check v0.0.0-00010101000000-000000000000
+	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/go-kit/kit v0.10.1-0.20200915143503-439c4d2ed3ea
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang/protobuf v1.5.3
 	github.com/google/go-github/v28 v28.1.1
 	github.com/gorilla/mux v1.8.0
@@ -58,6 +60,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	github.com/stvp/go-udp-testing v0.0.0-20191102171040-06b61409b154
+	github.com/tink-crypto/tink-go/v2 v2.0.0
 	github.com/traefik/paerser v0.2.0
 	github.com/traefik/yaegi v0.15.1
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
@@ -183,13 +186,11 @@ require (
 	github.com/fvbommel/sortorder v1.0.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
-	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/go-zookeeper/zk v1.0.3 // indirect

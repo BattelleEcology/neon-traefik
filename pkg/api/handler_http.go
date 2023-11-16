@@ -34,6 +34,7 @@ func newRouterRepresentation(name string, rt *runtime.RouterInfo) routerRepresen
 
 type serviceRepresentation struct {
 	*runtime.ServiceInfo
+	Status       string            `json:"status,omitempty"`
 	ServerStatus map[string]string `json:"serverStatus,omitempty"`
 	Name         string            `json:"name,omitempty"`
 	Provider     string            `json:"provider,omitempty"`
@@ -45,6 +46,7 @@ func newServiceRepresentation(name string, si *runtime.ServiceInfo) serviceRepre
 		ServiceInfo:  si,
 		Name:         name,
 		Provider:     getProviderName(name),
+		Status:       si.GetStatusRollup(),
 		ServerStatus: si.GetAllStatus(),
 		Type:         strings.ToLower(extractType(si.Service)),
 	}
@@ -235,7 +237,7 @@ func keepService(name string, item *runtime.ServiceInfo, criterion *searchCriter
 		return true
 	}
 
-	return criterion.withStatus(item.Status) && criterion.searchIn(name)
+	return criterion.withStatus(item.GetStatusRollup()) && criterion.searchIn(name)
 }
 
 func keepMiddleware(name string, item *runtime.MiddlewareInfo, criterion *searchCriterion) bool {
