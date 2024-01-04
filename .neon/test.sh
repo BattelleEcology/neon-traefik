@@ -1,6 +1,7 @@
 #!/bin/bash
 
 LOC=$(pwd)
+cd ..
 
 # go test ./...
 # cd integration
@@ -9,3 +10,5 @@ LOC=$(pwd)
 
 # Test using Docker
 make test
+
+cd $LOC

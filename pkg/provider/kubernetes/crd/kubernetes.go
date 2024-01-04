@@ -291,6 +291,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 			Headers:           middleware.Spec.Headers,
 			Errors:            errorPage,
 			RateLimit:         rateLimit,
+			NeonAPIRateLimit:  middleware.Spec.NeonAPIRateLimit,
 			RedirectRegex:     middleware.Spec.RedirectRegex,
 			RedirectScheme:    middleware.Spec.RedirectScheme,
 			BasicAuth:         basicAuth,

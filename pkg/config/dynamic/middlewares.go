@@ -533,7 +533,7 @@ type NeonAPIRateLimitRedis struct {
 	Port int `json:"port,omitempty" toml:"port,omitempty" yaml:"port,omitempty"`
 	// The Redis database to connect to.
 	Database int `json:"database,omitempty" toml:"database,omitempty" yaml:"database,omitempty"`
-	// KeyPreix is the prefix to assign to rate limiting state in Redis.
+	// KeyPrefix is the prefix to assign to rate limiting state in Redis.
 	KeyPrefix string `json:"keyPrefix,omitempty" toml:"keyPrefix,omitempty" yaml:"keyPrefix,omitempty"`
 	// The name of the redis user to connect with.
 	Username string `json:"-" toml:"username,omitempty" yaml:"username,omitempty"`
