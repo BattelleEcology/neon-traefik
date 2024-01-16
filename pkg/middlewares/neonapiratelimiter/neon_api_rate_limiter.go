@@ -40,6 +40,21 @@ const (
 	redisAPITokenKeyPrefix = "traefik:token"
 )
 
+// Environment variables that can be utilized instead of or
+// to override values read from the dynamic, kubernetes CRD configurations.
+// These are also in place for utilization within kubernetes,
+// where the auto generated CRDs for this middleware exclude
+// any sensitive values when serializing to JSON so that they
+// are not exposed within the UI dashboard.
+var (
+	envRedisUsername          = os.Getenv("TRAEFIK_MIDDLEWARES_NEONAPIRATELIMITER_REDIS_USERNAME")
+	envRedisPass              = os.Getenv("TRAEFIK_MIDDLEWARES_NEONAPIRATELIMITER_REDIS_PASS")
+	envRedisStorageTinkKeyset = os.Getenv("TRAEFIK_MIDDLEWARES_NEONAPIRATELIMITER_REDIS_STORAGE_TINK_KEYSET")
+	envRedisTlsCa             = os.Getenv("TRAEFIK_MIDDLEWARES_NEONAPIRATELIMITER_REDIS_TLS_CA")
+	envRedisTlsCert           = os.Getenv("TRAEFIK_MIDDLEWARES_NEONAPIRATELIMITER_REDIS_TLS_CERT")
+	envRedisTlsKey            = os.Getenv("TRAEFIK_MIDDLEWARES_NEONAPIRATELIMITER_REDIS_TLS_KEY")
+)
+
 type neonAPIRateLimiterRedisStorage struct {
 	encrypt          bool
 	encryptKeyset    *keyset.Handle
@@ -120,7 +135,7 @@ func validateConfig(config dynamic.NeonAPIRateLimit) bool {
 		return false
 	}
 	hasRedis := config.Redis.Host != "" &&
-		config.Redis.Password != ""
+		(config.Redis.Password != "" || envRedisPass != "")
 	if !hasRedis {
 		return false
 	}
@@ -134,14 +149,16 @@ func validateConfig(config dynamic.NeonAPIRateLimit) bool {
 			return false
 		}
 		if config.Redis.Tls.UseMTls {
-			if config.Redis.Tls.Cert == "" || config.Redis.Tls.Key == "" {
+			invalidDynamicConf := config.Redis.Tls.Cert == "" || config.Redis.Tls.Key == ""
+			invalidEnvConf := envRedisTlsCert == "" || envRedisTlsKey == ""
+			if invalidDynamicConf && invalidEnvConf {
 				return false
 			}
 		}
 	}
 	if config.Redis.Storage != nil {
 		if config.Redis.Storage.Encrypt {
-			if config.Redis.Storage.Keyset == "" {
+			if config.Redis.Storage.Keyset == "" && envRedisStorageTinkKeyset == "" {
 				return false
 			}
 		}
@@ -319,10 +336,22 @@ func initRedisConfig(
 		logger.Errorf("failed to initialize Redis TLS config: [%v]", err)
 		return nil, err
 	}
+	appliedUsername := ""
+	if envRedisUsername != "" {
+		appliedUsername = envRedisUsername
+	} else if config.Username != "" {
+		appliedUsername = config.Username
+	}
+	var appliedPass string
+	if envRedisPass != "" {
+		appliedPass = envRedisPass
+	} else {
+		appliedPass = config.Password
+	}
 	client := redis.NewClient(&redis.Options{
 		Addr:         fmt.Sprintf("%s:%d", config.Host, config.Port),
-		Username:     config.Username,
-		Password:     config.Password,
+		Username:     appliedUsername,
+		Password:     appliedPass,
 		DB:           config.Database,
 		TLSConfig:    tlsConfig,
 		DialTimeout:  10 * time.Second,
@@ -368,11 +397,17 @@ func initRedisTlsConfig(
 		InsecureSkipVerify: !config.Tls.Verify,
 		ServerName:         config.Host,
 	}
-	if config.Tls.Ca != "" {
+	var appliedCa string
+	if envRedisTlsCa != "" {
+		appliedCa = envRedisTlsCa
+	} else if config.Tls.Ca != "" {
+		appliedCa = config.Tls.Ca
+	}
+	if appliedCa != "" {
 		// Initialize a root CA to verify against when utilizing
 		// a self signed certificate during development.
 		roots := x509.NewCertPool()
-		rootCaFileData, err := os.ReadFile(config.Tls.Ca)
+		rootCaFileData, err := os.ReadFile(appliedCa)
 		if err != nil || rootCaFileData == nil {
 			logger.Errorf("failed to read CA cert file: [%v]", err)
 			return nil, errors.New("failed to initialize Redis CA cert, client")
@@ -385,8 +420,20 @@ func initRedisTlsConfig(
 		tlsConfig.RootCAs = roots
 	}
 	if config.Tls.UseMTls {
+		var appliedCert string
+		var appliedKey string
+		if envRedisTlsCert != "" {
+			appliedCert = envRedisTlsCert
+		} else if config.Tls.Cert != "" {
+			appliedCert = config.Tls.Cert
+		}
+		if envRedisTlsKey != "" {
+			appliedKey = envRedisTlsKey
+		} else if config.Tls.Key != "" {
+			appliedKey = config.Tls.Key
+		}
 		// Load the client cert and key.
-		cert, err := tls.LoadX509KeyPair(config.Tls.Cert, config.Tls.Key)
+		cert, err := tls.LoadX509KeyPair(appliedCert, appliedKey)
 		if err != nil {
 			logger.Errorf("Failed to initialize Redis client certs, [%v]", err)
 			return nil, errors.New("failed to initialize Redis client certs")
@@ -404,7 +451,13 @@ func initRedisStorageConfig(
 	logger log.Logger,
 ) (*keyset.Handle, error) {
 	hasKeyset := false
-	if _, err := os.Stat(config.Keyset); err == nil {
+	var appliedKeyset string
+	if envRedisStorageTinkKeyset != "" {
+		appliedKeyset = envRedisStorageTinkKeyset
+	} else {
+		appliedKeyset = config.Keyset
+	}
+	if _, err := os.Stat(appliedKeyset); err == nil {
 		hasKeyset = true
 	}
 	if !hasKeyset {
@@ -414,7 +467,7 @@ func initRedisStorageConfig(
 			logger.Errorf("failed to create tink keyset handle [%v]", err)
 			return nil, err
 		}
-		fileWriter, err := os.Create(config.Keyset)
+		fileWriter, err := os.Create(appliedKeyset)
 		if err != nil {
 			logger.Errorf("failed to create tink keyset file [%v]", err)
 			return nil, err
@@ -424,7 +477,7 @@ func initRedisStorageConfig(
 		jsonWriter := keyset.NewJSONWriter(fileWriter)
 		insecurecleartextkeyset.Write(keysetHandle, jsonWriter)
 	}
-	fileReader, err := os.Open(config.Keyset)
+	fileReader, err := os.Open(appliedKeyset)
 	if err != nil {
 		logger.Errorf("failed to open tink keyset file [%v]", err)
 		return nil, err

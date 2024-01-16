@@ -622,6 +622,9 @@ type NeonAPIRateLimit struct {
 	Redis *NeonAPIRateLimitRedis `json:"redis,omitempty" toml:"redis,omitempty" yaml:"redis,omitempty"`
 	// Auth data service configuration.
 	AuthService *NeonAPIRateLimitAuthService `json:"authService,omitempty" toml:"authService,omitempty" yaml:"authService,omitempty"`
+	// Secret is the name of the referenced Kubernetes Secret containing
+	// configuration properties stored in the secret.
+	Secret string `json:"secret,omitempty" toml:"secret,omitempty" yaml:"secret,omitempty"`
 }
 
 // SetDefaults sets the default values on a NeonAPIRateLimit.

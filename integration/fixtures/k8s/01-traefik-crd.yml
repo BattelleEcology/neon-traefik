@@ -1318,6 +1318,10 @@ spec:
                           scope.
                         type: string
                     type: object
+                  secret:
+                    description: Secret is the name of the referenced Kubernetes Secret
+                      containing configuration properties stored in the secret.
+                    type: string
                   sourceCriterion:
                     description: Source handling criteria.
                     properties:
@@ -3766,6 +3770,10 @@ spec:
                           scope.
                         type: string
                     type: object
+                  secret:
+                    description: Secret is the name of the referenced Kubernetes Secret
+                      containing configuration properties stored in the secret.
+                    type: string
                   sourceCriterion:
                     description: Source handling criteria.
                     properties:

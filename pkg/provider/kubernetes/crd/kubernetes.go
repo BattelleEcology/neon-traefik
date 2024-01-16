@@ -268,6 +268,12 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 			continue
 		}
 
+		neonAPIRateLimit, err := createNeonAPIRateLimitMiddleware(client, middleware.Namespace, middleware.Spec.NeonAPIRateLimit)
+		if err != nil {
+			log.FromContext(ctxMid).Errorf("Error while reading NeonAPIRateLimit middleware: %v", err)
+			continue
+		}
+
 		retry, err := createRetryMiddleware(middleware.Spec.Retry)
 		if err != nil {
 			log.FromContext(ctxMid).Errorf("Error while reading retry middleware: %v", err)
@@ -291,7 +297,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 			Headers:           middleware.Spec.Headers,
 			Errors:            errorPage,
 			RateLimit:         rateLimit,
-			NeonAPIRateLimit:  middleware.Spec.NeonAPIRateLimit,
+			NeonAPIRateLimit:  neonAPIRateLimit,
 			RedirectRegex:     middleware.Spec.RedirectRegex,
 			RedirectScheme:    middleware.Spec.RedirectScheme,
 			BasicAuth:         basicAuth,
@@ -594,6 +600,53 @@ func createRateLimitMiddleware(rateLimit *traefikv1alpha1.RateLimit) (*dynamic.R
 	}
 
 	return rl, nil
+}
+
+func createNeonAPIRateLimitMiddleware(client Client, namespace string, neonAPIRateLimit *dynamic.NeonAPIRateLimit) (*dynamic.NeonAPIRateLimit, error) {
+	if neonAPIRateLimit == nil {
+		return nil, nil
+	}
+	// For this middleware, only optionally pull additional configuration
+	// options from the secret.
+	if neonAPIRateLimit.Secret == "" {
+		return neonAPIRateLimit, nil
+	}
+	secret, ok, err := client.GetSecret(namespace, neonAPIRateLimit.Secret)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch secret '%s/%s': %w", namespace, neonAPIRateLimit.Secret, err)
+	}
+	if !ok {
+		return nil, fmt.Errorf("secret '%s/%s' not found", namespace, neonAPIRateLimit.Secret)
+	}
+	if secret == nil {
+		return nil, fmt.Errorf("data for secret '%s/%s' must not be nil", namespace, neonAPIRateLimit.Secret)
+	}
+	redisUsername, redisUsernameExists := secret.Data["redisUsername"]
+	redisPassword, redisPasswordExists := secret.Data["redisPassword"]
+	redisStorageKeyset, redisStorageKeysetExists := secret.Data["redisStorageKeyset"]
+	redisTlsCa, redisTlsCaExists := secret.Data["redisTlsCa"]
+	redisTlsCert, redisTlsCertExists := secret.Data["redisTlsCert"]
+	redisTlsKey, redisTlsKeyExists := secret.Data["redisTlsKey"]
+	mergedConfig := neonAPIRateLimit.DeepCopy()
+	if redisUsernameExists {
+		mergedConfig.Redis.Username = string(redisUsername)
+	}
+	if redisPasswordExists {
+		mergedConfig.Redis.Password = string(redisPassword)
+	}
+	if redisStorageKeysetExists {
+		mergedConfig.Redis.Storage.Keyset = string(redisStorageKeyset)
+	}
+	if redisTlsCaExists {
+		mergedConfig.Redis.Tls.Ca = string(redisTlsCa)
+	}
+	if redisTlsCertExists {
+		mergedConfig.Redis.Tls.Cert = string(redisTlsCert)
+	}
+	if redisTlsKeyExists {
+		mergedConfig.Redis.Tls.Key = string(redisTlsKey)
+	}
+	return mergedConfig, nil
 }
 
 func createRetryMiddleware(retry *traefikv1alpha1.Retry) (*dynamic.Retry, error) {

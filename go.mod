@@ -60,7 +60,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	github.com/stvp/go-udp-testing v0.0.0-20191102171040-06b61409b154
-	github.com/tink-crypto/tink-go/v2 v2.0.0
+	github.com/tink-crypto/tink-go/v2 v2.1.0
 	github.com/traefik/paerser v0.2.0
 	github.com/traefik/yaegi v0.15.1
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
@@ -201,7 +201,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20230817174616-7a8ec2ada47b // indirect
