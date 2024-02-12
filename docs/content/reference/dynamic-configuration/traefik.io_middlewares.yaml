@@ -685,6 +685,18 @@ spec:
                         description: KeyPrefix is the prefix to assign to rate limiting
                           state in Redis.
                         type: string
+                      passwordSecretKeyRef:
+                        description: The secret key ref of the password of the redis
+                          user to connect with.
+                        properties:
+                          key:
+                            description: The name of the key in the secret to pull
+                              from.
+                            type: string
+                          name:
+                            description: The name of the secret.
+                            type: string
+                        type: object
                       port:
                         description: The Redis port to connect to.
                         type: integer
@@ -694,10 +706,59 @@ spec:
                           encrypt:
                             description: Optionally encrypt data stored in Redis.
                             type: boolean
+                          keysetSecretKeyRef:
+                            description: The keyset secret ref for the Tink keyset.
+                              Required when encrypt is true. If the file/data does
+                              not exist, it will be generated.
+                            properties:
+                              key:
+                                description: The name of the key in the secret to
+                                  pull from.
+                                type: string
+                              name:
+                                description: The name of the secret.
+                                type: string
+                            type: object
                         type: object
                       tls:
                         description: TLS configuration options.
                         properties:
+                          caSecretKeyRef:
+                            description: The certificate authority certificate secret
+                              key ref.
+                            properties:
+                              key:
+                                description: The name of the key in the secret to
+                                  pull from.
+                                type: string
+                              name:
+                                description: The name of the secret.
+                                type: string
+                            type: object
+                          certSecretKeyRef:
+                            description: Public certificate secret key ref used for
+                              the secure connection to Redis.
+                            properties:
+                              key:
+                                description: The name of the key in the secret to
+                                  pull from.
+                                type: string
+                              name:
+                                description: The name of the secret.
+                                type: string
+                            type: object
+                          keySecretKeyRef:
+                            description: Private key secret key ref used for the secure
+                              connection to Redis.
+                            properties:
+                              key:
+                                description: The name of the key in the secret to
+                                  pull from.
+                                type: string
+                              name:
+                                description: The name of the secret.
+                                type: string
+                            type: object
                           useMTls:
                             description: Optionally apply mTLS for the TLS connection
                               to Redis.
@@ -711,6 +772,18 @@ spec:
                         description: Optionally apply the TLS configuration when connecting
                           with Redis.
                         type: boolean
+                      usernameSecretKeyRef:
+                        description: The secret key ref of the name of the redis user
+                          to connect with.
+                        properties:
+                          key:
+                            description: The name of the key in the secret to pull
+                              from.
+                            type: string
+                          name:
+                            description: The name of the secret.
+                            type: string
+                        type: object
                     type: object
                   requestMethodsPassthrough:
                     description: RequestMethodsPassthrough allows specifiying a set
@@ -744,10 +817,6 @@ spec:
                           scope.
                         type: string
                     type: object
-                  secret:
-                    description: Secret is the name of the referenced Kubernetes Secret
-                      containing configuration properties stored in the secret.
-                    type: string
                   sourceCriterion:
                     description: Source handling criteria.
                     properties:

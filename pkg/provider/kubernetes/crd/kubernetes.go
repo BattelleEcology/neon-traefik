@@ -268,7 +268,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 			continue
 		}
 
-		neonAPIRateLimit, err := createNeonAPIRateLimitMiddleware(client, middleware.Namespace, middleware.Spec.NeonAPIRateLimit)
+		neonAPIRateLimit, err := createNeonAPIRateLimitMiddleware(ctxMid, client, middleware.Namespace, middleware.Spec.NeonAPIRateLimit)
 		if err != nil {
 			log.FromContext(ctxMid).Errorf("Error while reading NeonAPIRateLimit middleware: %v", err)
 			continue
@@ -602,51 +602,254 @@ func createRateLimitMiddleware(rateLimit *traefikv1alpha1.RateLimit) (*dynamic.R
 	return rl, nil
 }
 
-func createNeonAPIRateLimitMiddleware(client Client, namespace string, neonAPIRateLimit *dynamic.NeonAPIRateLimit) (*dynamic.NeonAPIRateLimit, error) {
+func createNeonAPIRateLimitMiddleware(
+	ctx context.Context,
+	client Client,
+	namespace string,
+	neonAPIRateLimit *traefikv1alpha1.NeonAPIRateLimit,
+) (*dynamic.NeonAPIRateLimit, error) {
 	if neonAPIRateLimit == nil {
 		return nil, nil
 	}
 	// For this middleware, only optionally pull additional configuration
-	// options from the secret.
-	if neonAPIRateLimit.Secret == "" {
-		return neonAPIRateLimit, nil
+	// options from the secrets.
+	hasRedisUsernameSecret := neonAPIRateLimit.Redis.UsernameSecretKeyRef != nil &&
+		neonAPIRateLimit.Redis.UsernameSecretKeyRef.Name != "" &&
+		neonAPIRateLimit.Redis.UsernameSecretKeyRef.Key != ""
+	hasRedisPasswordSecret := neonAPIRateLimit.Redis.PasswordSecretKeyRef != nil &&
+		neonAPIRateLimit.Redis.PasswordSecretKeyRef.Name != "" &&
+		neonAPIRateLimit.Redis.PasswordSecretKeyRef.Key != ""
+	hasRedisStorageKeysetSecret := neonAPIRateLimit.Redis.Storage != nil &&
+		neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef != nil &&
+		neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef.Name != "" &&
+		neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef.Key != ""
+	hasRedisTlsCaSecret := neonAPIRateLimit.Redis.Tls != nil &&
+		neonAPIRateLimit.Redis.Tls.CaSecretKeyRef != nil &&
+		neonAPIRateLimit.Redis.Tls.CaSecretKeyRef.Name != "" &&
+		neonAPIRateLimit.Redis.Tls.CaSecretKeyRef.Key != ""
+	hasRedisTlsCertSecret := neonAPIRateLimit.Redis.Tls != nil &&
+		neonAPIRateLimit.Redis.Tls.CertSecretKeyRef != nil &&
+		neonAPIRateLimit.Redis.Tls.CertSecretKeyRef.Name != "" &&
+		neonAPIRateLimit.Redis.Tls.CertSecretKeyRef.Key != ""
+	hasRedisTlsKeySecret := neonAPIRateLimit.Redis.Tls != nil &&
+		neonAPIRateLimit.Redis.Tls.KeySecretKeyRef != nil &&
+		neonAPIRateLimit.Redis.Tls.KeySecretKeyRef.Name != "" &&
+		neonAPIRateLimit.Redis.Tls.KeySecretKeyRef.Key != ""
+	hasSecret := hasRedisUsernameSecret ||
+		hasRedisPasswordSecret ||
+		hasRedisStorageKeysetSecret ||
+		hasRedisTlsCaSecret ||
+		hasRedisTlsCertSecret ||
+		hasRedisTlsKeySecret
+	internalConfig := &dynamic.NeonAPIRateLimit{}
+	internalConfig.SetDefaults()
+	if neonAPIRateLimit.Burst > 0 {
+		internalConfig.Burst = neonAPIRateLimit.Burst
 	}
-	secret, ok, err := client.GetSecret(namespace, neonAPIRateLimit.Secret)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch secret '%s/%s': %w", namespace, neonAPIRateLimit.Secret, err)
+	if neonAPIRateLimit.Rate > 0 {
+		internalConfig.Rate = neonAPIRateLimit.Rate
 	}
-	if !ok {
-		return nil, fmt.Errorf("secret '%s/%s' not found", namespace, neonAPIRateLimit.Secret)
+	if neonAPIRateLimit.Period > 0 {
+		internalConfig.Period = neonAPIRateLimit.Period
 	}
-	if secret == nil {
-		return nil, fmt.Errorf("data for secret '%s/%s' must not be nil", namespace, neonAPIRateLimit.Secret)
+	if neonAPIRateLimit.Weight > 0 {
+		internalConfig.Weight = neonAPIRateLimit.Weight
 	}
-	redisUsername, redisUsernameExists := secret.Data["redisUsername"]
-	redisPassword, redisPasswordExists := secret.Data["redisPassword"]
-	redisStorageKeyset, redisStorageKeysetExists := secret.Data["redisStorageKeyset"]
-	redisTlsCa, redisTlsCaExists := secret.Data["redisTlsCa"]
-	redisTlsCert, redisTlsCertExists := secret.Data["redisTlsCert"]
-	redisTlsKey, redisTlsKeyExists := secret.Data["redisTlsKey"]
-	mergedConfig := neonAPIRateLimit.DeepCopy()
-	if redisUsernameExists {
-		mergedConfig.Redis.Username = string(redisUsername)
+	internalConfig.ApplyTokenRateLimit = neonAPIRateLimit.ApplyTokenRateLimit
+	if neonAPIRateLimit.TokenBurst > 0 {
+		internalConfig.TokenBurst = neonAPIRateLimit.TokenBurst
 	}
-	if redisPasswordExists {
-		mergedConfig.Redis.Password = string(redisPassword)
+	if neonAPIRateLimit.TokenRate > 0 {
+		internalConfig.TokenRate = neonAPIRateLimit.TokenRate
 	}
-	if redisStorageKeysetExists {
-		mergedConfig.Redis.Storage.Keyset = string(redisStorageKeyset)
+	if neonAPIRateLimit.TokenPeriod > 0 {
+		internalConfig.TokenPeriod = neonAPIRateLimit.TokenPeriod
 	}
-	if redisTlsCaExists {
-		mergedConfig.Redis.Tls.Ca = string(redisTlsCa)
+	if neonAPIRateLimit.TokenWeight > 0 {
+		internalConfig.TokenWeight = neonAPIRateLimit.TokenWeight
 	}
-	if redisTlsCertExists {
-		mergedConfig.Redis.Tls.Cert = string(redisTlsCert)
+	if neonAPIRateLimit.TokenHeader != "" {
+		internalConfig.TokenHeader = neonAPIRateLimit.TokenHeader
 	}
-	if redisTlsKeyExists {
-		mergedConfig.Redis.Tls.Key = string(redisTlsKey)
+	if neonAPIRateLimit.TokenQueryParam != "" {
+		internalConfig.TokenQueryParam = neonAPIRateLimit.TokenQueryParam
 	}
-	return mergedConfig, nil
+	if len(neonAPIRateLimit.SourceRange) > 0 {
+		internalConfig.SourceRange = neonAPIRateLimit.SourceRange
+	}
+	if len(neonAPIRateLimit.RequestMethodsPassthrough) > 0 {
+		internalConfig.RequestMethodsPassthrough = neonAPIRateLimit.RequestMethodsPassthrough
+	}
+	if neonAPIRateLimit.SourceCriterion != nil {
+		if neonAPIRateLimit.SourceCriterion.IPStrategy != nil {
+			if len(neonAPIRateLimit.SourceCriterion.IPStrategy.ExcludedIPs) > 0 {
+				internalConfig.SourceCriterion.IPStrategy.ExcludedIPs = neonAPIRateLimit.SourceCriterion.IPStrategy.ExcludedIPs
+			}
+			if neonAPIRateLimit.SourceCriterion.IPStrategy.Depth >= 0 {
+				internalConfig.SourceCriterion.IPStrategy.Depth = neonAPIRateLimit.SourceCriterion.IPStrategy.Depth
+			}
+		}
+		if neonAPIRateLimit.SourceCriterion.RequestHeaderName != "" {
+			internalConfig.SourceCriterion.RequestHeaderName = neonAPIRateLimit.SourceCriterion.RequestHeaderName
+		}
+		internalConfig.SourceCriterion.RequestHost = neonAPIRateLimit.SourceCriterion.RequestHost
+	}
+	if neonAPIRateLimit.Scopes != nil {
+		if neonAPIRateLimit.Scopes.ClaimName != "" {
+			internalConfig.Scopes.ClaimName = neonAPIRateLimit.Scopes.ClaimName
+		}
+		if len(neonAPIRateLimit.Scopes.PrefixFilter) > 0 {
+			internalConfig.Scopes.PrefixFilter = neonAPIRateLimit.Scopes.PrefixFilter
+		}
+		if neonAPIRateLimit.Scopes.ServiceScopeName != "" {
+			internalConfig.Scopes.ServiceScopeName = neonAPIRateLimit.Scopes.ServiceScopeName
+		}
+		if neonAPIRateLimit.Scopes.RateScopeUnlimitedName != "" {
+			internalConfig.Scopes.RateScopeUnlimitedName = neonAPIRateLimit.Scopes.RateScopeUnlimitedName
+		}
+		if neonAPIRateLimit.Scopes.RateScopeLimitedName != "" {
+			internalConfig.Scopes.RateScopeLimitedName = neonAPIRateLimit.Scopes.RateScopeLimitedName
+		}
+	}
+	if neonAPIRateLimit.Redis != nil {
+		if neonAPIRateLimit.Redis.Host != "" {
+			internalConfig.Redis.Host = neonAPIRateLimit.Redis.Host
+		}
+		if neonAPIRateLimit.Redis.Port > 0 {
+			internalConfig.Redis.Port = neonAPIRateLimit.Redis.Port
+		}
+		if neonAPIRateLimit.Redis.Database >= 0 {
+			internalConfig.Redis.Database = neonAPIRateLimit.Redis.Database
+		}
+		if neonAPIRateLimit.Redis.KeyPrefix != "" {
+			internalConfig.Redis.KeyPrefix = neonAPIRateLimit.Redis.KeyPrefix
+		}
+		internalConfig.Redis.UseTls = neonAPIRateLimit.Redis.UseTls
+		if neonAPIRateLimit.Redis.Tls != nil {
+			internalConfig.Redis.Tls.Verify = neonAPIRateLimit.Redis.Tls.Verify
+			internalConfig.Redis.Tls.UseMTls = neonAPIRateLimit.Redis.Tls.UseMTls
+		}
+		if neonAPIRateLimit.Redis.Storage != nil {
+			internalConfig.Redis.Storage.Encrypt = neonAPIRateLimit.Redis.Storage.Encrypt
+		}
+	}
+	if neonAPIRateLimit.AuthService != nil {
+		if neonAPIRateLimit.AuthService.ServiceUrl != "" {
+			internalConfig.AuthService.ServiceUrl = neonAPIRateLimit.AuthService.ServiceUrl
+		}
+		if neonAPIRateLimit.AuthService.TokenVerifyEndpoint != "" {
+			internalConfig.AuthService.TokenVerifyEndpoint = neonAPIRateLimit.AuthService.TokenVerifyEndpoint
+		}
+		if neonAPIRateLimit.AuthService.TokenHeader != "" {
+			internalConfig.AuthService.TokenHeader = neonAPIRateLimit.AuthService.TokenHeader
+		}
+	}
+	if !hasSecret {
+		return internalConfig, nil
+	}
+	if hasRedisUsernameSecret {
+		name := neonAPIRateLimit.Redis.UsernameSecretKeyRef.Name
+		key := neonAPIRateLimit.Redis.UsernameSecretKeyRef.Key
+		secret, ok, err := client.GetSecret(namespace, name)
+		if err != nil {
+			log.FromContext(ctx).Errorf("failed to fetch secret '%s/%s': %w", namespace, name, err)
+		} else if !ok {
+			log.FromContext(ctx).Errorf("secret '%s/%s' not found", namespace, name)
+		} else if secret == nil {
+			log.FromContext(ctx).Errorf("data for secret '%s/%s' must not be nil", namespace, name)
+		} else {
+			redisUsername, redisUsernameExists := secret.Data[key]
+			if redisUsernameExists {
+				internalConfig.Redis.Username = string(redisUsername)
+			}
+		}
+	}
+	if hasRedisPasswordSecret {
+		name := neonAPIRateLimit.Redis.PasswordSecretKeyRef.Name
+		key := neonAPIRateLimit.Redis.PasswordSecretKeyRef.Key
+		secret, ok, err := client.GetSecret(namespace, name)
+		if err != nil {
+			log.FromContext(ctx).Errorf("failed to fetch secret '%s/%s': %w", namespace, name, err)
+		} else if !ok {
+			log.FromContext(ctx).Errorf("secret '%s/%s' not found", namespace, name)
+		} else if secret == nil {
+			log.FromContext(ctx).Errorf("data for secret '%s/%s' must not be nil", namespace, name)
+		} else {
+			redisPassword, redisPasswordExists := secret.Data[key]
+			if redisPasswordExists {
+				internalConfig.Redis.Password = string(redisPassword)
+			}
+		}
+	}
+	if hasRedisStorageKeysetSecret {
+		name := neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef.Name
+		key := neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef.Key
+		secret, ok, err := client.GetSecret(namespace, name)
+		if err != nil {
+			log.FromContext(ctx).Errorf("failed to fetch secret '%s/%s': %w", namespace, name, err)
+		} else if !ok {
+			log.FromContext(ctx).Errorf("secret '%s/%s' not found", namespace, name)
+		} else if secret == nil {
+			log.FromContext(ctx).Errorf("data for secret '%s/%s' must not be nil", namespace, name)
+		} else {
+			redisStorageKeyset, redisStorageKeysetExists := secret.Data[key]
+			if redisStorageKeysetExists {
+				internalConfig.Redis.Storage.Keyset = string(redisStorageKeyset)
+			}
+		}
+	}
+	if hasRedisTlsCaSecret {
+		name := neonAPIRateLimit.Redis.Tls.CaSecretKeyRef.Name
+		key := neonAPIRateLimit.Redis.Tls.CaSecretKeyRef.Key
+		secret, ok, err := client.GetSecret(namespace, name)
+		if err != nil {
+			log.FromContext(ctx).Errorf("failed to fetch secret '%s/%s': %w", namespace, name, err)
+		} else if !ok {
+			log.FromContext(ctx).Errorf("secret '%s/%s' not found", namespace, name)
+		} else if secret == nil {
+			log.FromContext(ctx).Errorf("data for secret '%s/%s' must not be nil", namespace, name)
+		} else {
+			redisTlsCa, redisTlsCaExists := secret.Data[key]
+			if redisTlsCaExists {
+				internalConfig.Redis.Tls.Ca = string(redisTlsCa)
+			}
+		}
+	}
+	if hasRedisTlsCertSecret {
+		name := neonAPIRateLimit.Redis.Tls.CertSecretKeyRef.Name
+		key := neonAPIRateLimit.Redis.Tls.CertSecretKeyRef.Key
+		secret, ok, err := client.GetSecret(namespace, name)
+		if err != nil {
+			log.FromContext(ctx).Errorf("failed to fetch secret '%s/%s': %w", namespace, name, err)
+		} else if !ok {
+			log.FromContext(ctx).Errorf("secret '%s/%s' not found", namespace, name)
+		} else if secret == nil {
+			log.FromContext(ctx).Errorf("data for secret '%s/%s' must not be nil", namespace, name)
+		} else {
+			redisTlsCert, redisTlsCertExists := secret.Data[key]
+			if redisTlsCertExists {
+				internalConfig.Redis.Tls.Cert = string(redisTlsCert)
+			}
+		}
+	}
+	if hasRedisTlsKeySecret {
+		name := neonAPIRateLimit.Redis.Tls.KeySecretKeyRef.Name
+		key := neonAPIRateLimit.Redis.Tls.KeySecretKeyRef.Key
+		secret, ok, err := client.GetSecret(namespace, name)
+		if err != nil {
+			log.FromContext(ctx).Errorf("failed to fetch secret '%s/%s': %w", namespace, name, err)
+		} else if !ok {
+			log.FromContext(ctx).Errorf("secret '%s/%s' not found", namespace, name)
+		} else if secret == nil {
+			log.FromContext(ctx).Errorf("data for secret '%s/%s' must not be nil", namespace, name)
+		} else {
+			redisTlsKey, redisTlsKeyExists := secret.Data[key]
+			if redisTlsKeyExists {
+				internalConfig.Redis.Tls.Key = string(redisTlsKey)
+			}
+		}
+	}
+	return internalConfig, nil
 }
 
 func createRetryMiddleware(retry *traefikv1alpha1.Retry) (*dynamic.Retry, error) {

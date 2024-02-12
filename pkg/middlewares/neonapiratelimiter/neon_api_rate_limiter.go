@@ -3,6 +3,7 @@
 package neonapiratelimiter
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -156,13 +157,6 @@ func validateConfig(config dynamic.NeonAPIRateLimit) bool {
 			}
 		}
 	}
-	if config.Redis.Storage != nil {
-		if config.Redis.Storage.Encrypt {
-			if config.Redis.Storage.Keyset == "" && envRedisStorageTinkKeyset == "" {
-				return false
-			}
-		}
-	}
 	return true
 }
 
@@ -183,7 +177,7 @@ func New(
 
 	validConfig := validateConfig(config)
 	if !validConfig {
-		return nil, errors.New("failed to validate neonAPIRateLimiter middlware config")
+		return nil, errors.New("failed to validate neonAPIRateLimiter middleware config")
 	}
 
 	if config.SourceCriterion == nil ||
@@ -407,10 +401,19 @@ func initRedisTlsConfig(
 		// Initialize a root CA to verify against when utilizing
 		// a self signed certificate during development.
 		roots := x509.NewCertPool()
-		rootCaFileData, err := os.ReadFile(appliedCa)
-		if err != nil || rootCaFileData == nil {
-			logger.Errorf("failed to read CA cert file: [%v]", err)
-			return nil, errors.New("failed to initialize Redis CA cert, client")
+		hasCaFile := false
+		if _, err := os.Stat(appliedCa); err == nil {
+			hasCaFile = true
+		}
+		var rootCaFileData []byte
+		if hasCaFile {
+			rootCaFileData, err := os.ReadFile(appliedCa)
+			if err != nil || rootCaFileData == nil {
+				logger.Errorf("failed to read CA cert file: [%v]", err)
+				return nil, errors.New("failed to initialize Redis CA cert, client")
+			}
+		} else {
+			rootCaFileData = []byte(appliedCa)
 		}
 		ok := roots.AppendCertsFromPEM(rootCaFileData)
 		if !ok {
@@ -432,8 +435,36 @@ func initRedisTlsConfig(
 		} else if config.Tls.Key != "" {
 			appliedKey = config.Tls.Key
 		}
+		var certFileData []byte
+		var keyFileData []byte
+		hasCertFile := false
+		hasKeyFile := false
+		if _, err := os.Stat(appliedCert); err == nil {
+			hasCertFile = true
+		}
+		if _, err := os.Stat(appliedKey); err == nil {
+			hasKeyFile = true
+		}
+		if hasCertFile {
+			certFileData, err := os.ReadFile(appliedCert)
+			if err != nil || certFileData == nil {
+				logger.Errorf("failed to read cert file: [%v]", err)
+				return nil, errors.New("failed to initialize Redis cert, client")
+			}
+		} else {
+			certFileData = []byte(appliedCert)
+		}
+		if hasKeyFile {
+			keyFileData, err := os.ReadFile(appliedKey)
+			if err != nil || keyFileData == nil {
+				logger.Errorf("failed to read key file: [%v]", err)
+				return nil, errors.New("failed to initialize Redis key, client")
+			}
+		} else {
+			keyFileData = []byte(appliedKey)
+		}
 		// Load the client cert and key.
-		cert, err := tls.LoadX509KeyPair(appliedCert, appliedKey)
+		cert, err := tls.X509KeyPair(certFileData, keyFileData)
 		if err != nil {
 			logger.Errorf("Failed to initialize Redis client certs, [%v]", err)
 			return nil, errors.New("failed to initialize Redis client certs")
@@ -450,7 +481,7 @@ func initRedisStorageConfig(
 	config *dynamic.NeonAPIRateLimitRedisStorage,
 	logger log.Logger,
 ) (*keyset.Handle, error) {
-	hasKeyset := false
+	hasKeysetFile := false
 	var appliedKeyset string
 	if envRedisStorageTinkKeyset != "" {
 		appliedKeyset = envRedisStorageTinkKeyset
@@ -458,36 +489,38 @@ func initRedisStorageConfig(
 		appliedKeyset = config.Keyset
 	}
 	if _, err := os.Stat(appliedKeyset); err == nil {
-		hasKeyset = true
+		hasKeysetFile = true
 	}
-	if !hasKeyset {
+	var reader keyset.Reader
+	if hasKeysetFile {
+		// Keyset definition references a file, read from it.
+		fileReader, err := os.Open(appliedKeyset)
+		if err != nil {
+			logger.Errorf("failed to open tink keyset file [%v]", err)
+			return nil, err
+		}
+		defer fileReader.Close()
+		// Read the clear text keyset file and create handle.
+		reader = keyset.NewJSONReader(fileReader)
+	} else if appliedKeyset != "" {
+		// Keyset definition references the raw data.
+		reader = keyset.NewBinaryReader(bytes.NewReader([]byte(appliedKeyset)))
+	} else {
 		// Create new DeterministicAEAD keyset if not found.
 		keysetHandle, err := keyset.NewHandle(daead.AESSIVKeyTemplate())
 		if err != nil {
 			logger.Errorf("failed to create tink keyset handle [%v]", err)
 			return nil, err
 		}
-		fileWriter, err := os.Create(appliedKeyset)
-		if err != nil {
-			logger.Errorf("failed to create tink keyset file [%v]", err)
-			return nil, err
-		}
-		defer fileWriter.Close()
-		// Write JSON to clear text file.
-		jsonWriter := keyset.NewJSONWriter(fileWriter)
-		insecurecleartextkeyset.Write(keysetHandle, jsonWriter)
+		// Write generated binary keyset data.
+		buff := new(bytes.Buffer)
+		binaryWriter := keyset.NewBinaryWriter(buff)
+		insecurecleartextkeyset.Write(keysetHandle, binaryWriter)
+		reader = keyset.NewBinaryReader(buff)
 	}
-	fileReader, err := os.Open(appliedKeyset)
+	keysetHandle, err := insecurecleartextkeyset.Read(reader)
 	if err != nil {
-		logger.Errorf("failed to open tink keyset file [%v]", err)
-		return nil, err
-	}
-	defer fileReader.Close()
-	// Read the clear text keyset file and create handle.
-	jsonReader := keyset.NewJSONReader(fileReader)
-	keysetHandle, err := insecurecleartextkeyset.Read(jsonReader)
-	if err != nil {
-		logger.Errorf("failed to read tink keyset file [%v]", err)
+		logger.Errorf("failed to read tink keyset [%v]", err)
 		return nil, err
 	}
 	return keysetHandle, nil

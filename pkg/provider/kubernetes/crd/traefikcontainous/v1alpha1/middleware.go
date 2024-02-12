@@ -36,7 +36,7 @@ type MiddlewareSpec struct {
 	Headers           *dynamic.Headers           `json:"headers,omitempty"`
 	Errors            *ErrorPage                 `json:"errors,omitempty"`
 	RateLimit         *RateLimit                 `json:"rateLimit,omitempty"`
-	NeonAPIRateLimit  *dynamic.NeonAPIRateLimit  `json:"neonAPIRateLimit,omitempty"`
+	NeonAPIRateLimit  *NeonAPIRateLimit          `json:"neonAPIRateLimit,omitempty"`
 	RedirectRegex     *dynamic.RedirectRegex     `json:"redirectRegex,omitempty"`
 	RedirectScheme    *dynamic.RedirectScheme    `json:"redirectScheme,omitempty"`
 	BasicAuth         *BasicAuth                 `json:"basicAuth,omitempty"`
@@ -208,6 +208,63 @@ type Retry struct {
 	// The value of initialInterval should be provided in seconds or as a valid duration format,
 	// see https://pkg.go.dev/time#ParseDuration.
 	InitialInterval intstr.IntOrString `json:"initialInterval,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitKeyRef holds the secret configuration for NeonAPIRateLimit.
+type NeonAPIRateLimitKeyRef struct {
+	// The name of the secret.
+	Name string `json:"name,omitempty"`
+	// The name of the key in the secret to pull from.
+	Key string `json:"key,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitRedisTls holds the Redis TLS configuration for NeonAPIRateLimit.
+type NeonAPIRateLimitRedisTls struct {
+	dynamic.NeonAPIRateLimitRedisTls `json:",inline"`
+	// The certificate authority certificate secret key ref.
+	CaSecretKeyRef *NeonAPIRateLimitKeyRef `json:"caSecretKeyRef,omitempty"`
+	// Public certificate secret key ref used for the secure connection to Redis.
+	CertSecretKeyRef *NeonAPIRateLimitKeyRef `json:"certSecretKeyRef,omitempty"`
+	// Private key secret key ref used for the secure connection to Redis.
+	KeySecretKeyRef *NeonAPIRateLimitKeyRef `json:"keySecretKeyRef,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitRedisStorage holds the Redis storage configuration for the NeonAPIRateLimit.
+type NeonAPIRateLimitRedisStorage struct {
+	dynamic.NeonAPIRateLimitRedisStorage `json:",inline"`
+	// The keyset secret ref for the Tink keyset. Required when encrypt is true.
+	// If the file/data does not exist, it will be generated.
+	KeysetSecretKeyRef *NeonAPIRateLimitKeyRef `json:"keysetSecretKeyRef,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitRedis holds the rate limiting configuration for a given router.
+type NeonAPIRateLimitRedis struct {
+	dynamic.NeonAPIRateLimitRedis `json:",inline"`
+	// The secret key ref of the name of the redis user to connect with.
+	UsernameSecretKeyRef *NeonAPIRateLimitKeyRef `json:"usernameSecretKeyRef,omitempty"`
+	// The secret key ref of the password of the redis user to connect with.
+	PasswordSecretKeyRef *NeonAPIRateLimitKeyRef `json:"passwordSecretKeyRef,omitempty"`
+	// TLS configuration options.
+	Tls *NeonAPIRateLimitRedisTls `json:"tls,omitempty"`
+	// Storage configuration options.
+	Storage *NeonAPIRateLimitRedisStorage `json:"storage,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimit holds the rate limiting configuration for a given router.
+type NeonAPIRateLimit struct {
+	dynamic.NeonAPIRateLimit `json:",inline"`
+	// Redis configuration.
+	Redis *NeonAPIRateLimitRedis `json:"redis,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
