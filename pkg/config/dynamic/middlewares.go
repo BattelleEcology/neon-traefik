@@ -638,15 +638,21 @@ func (r *NeonAPIRateLimit) SetDefaults() {
 	r.SourceCriterion = &SourceCriterion{
 		IPStrategy: &IPStrategy{},
 	}
-	r.Redis = &NeonAPIRateLimitRedis{
-		UseTls: false,
-		Tls: &NeonAPIRateLimitRedisTls{
-			UseMTls: false,
-		},
-		Storage: &NeonAPIRateLimitRedisStorage{
-			Encrypt: false,
-		},
-	}
+	scopes := &NeonAPIRateLimitScopes{}
+	scopes.SetDefaults()
+	r.Scopes = scopes
+	redis := &NeonAPIRateLimitRedis{}
+	redis.SetDefaults()
+	redisTls := &NeonAPIRateLimitRedisTls{}
+	redisTls.SetDefaults()
+	redis.Tls = redisTls
+	redisStorage := &NeonAPIRateLimitRedisStorage{}
+	redisStorage.SetDefaults()
+	redis.Storage = redisStorage
+	r.Redis = redis
+	authService := &NeonAPIRateLimitAuthService{}
+	authService.SetDefaults()
+	r.AuthService = authService
 }
 
 // +k8s:deepcopy-gen=true

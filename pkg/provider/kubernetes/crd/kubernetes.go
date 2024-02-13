@@ -613,28 +613,36 @@ func createNeonAPIRateLimitMiddleware(
 	}
 	// For this middleware, only optionally pull additional configuration
 	// options from the secrets.
-	hasRedisUsernameSecret := neonAPIRateLimit.Redis.UsernameSecretKeyRef != nil &&
-		neonAPIRateLimit.Redis.UsernameSecretKeyRef.Name != "" &&
-		neonAPIRateLimit.Redis.UsernameSecretKeyRef.Key != ""
-	hasRedisPasswordSecret := neonAPIRateLimit.Redis.PasswordSecretKeyRef != nil &&
-		neonAPIRateLimit.Redis.PasswordSecretKeyRef.Name != "" &&
-		neonAPIRateLimit.Redis.PasswordSecretKeyRef.Key != ""
-	hasRedisStorageKeysetSecret := neonAPIRateLimit.Redis.Storage != nil &&
-		neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef != nil &&
-		neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef.Name != "" &&
-		neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef.Key != ""
-	hasRedisTlsCaSecret := neonAPIRateLimit.Redis.Tls != nil &&
-		neonAPIRateLimit.Redis.Tls.CaSecretKeyRef != nil &&
-		neonAPIRateLimit.Redis.Tls.CaSecretKeyRef.Name != "" &&
-		neonAPIRateLimit.Redis.Tls.CaSecretKeyRef.Key != ""
-	hasRedisTlsCertSecret := neonAPIRateLimit.Redis.Tls != nil &&
-		neonAPIRateLimit.Redis.Tls.CertSecretKeyRef != nil &&
-		neonAPIRateLimit.Redis.Tls.CertSecretKeyRef.Name != "" &&
-		neonAPIRateLimit.Redis.Tls.CertSecretKeyRef.Key != ""
-	hasRedisTlsKeySecret := neonAPIRateLimit.Redis.Tls != nil &&
-		neonAPIRateLimit.Redis.Tls.KeySecretKeyRef != nil &&
-		neonAPIRateLimit.Redis.Tls.KeySecretKeyRef.Name != "" &&
-		neonAPIRateLimit.Redis.Tls.KeySecretKeyRef.Key != ""
+	hasRedisUsernameSecret := false
+	hasRedisPasswordSecret := false
+	hasRedisStorageKeysetSecret := false
+	hasRedisTlsCaSecret := false
+	hasRedisTlsCertSecret := false
+	hasRedisTlsKeySecret := false
+	if neonAPIRateLimit.Redis != nil {
+		hasRedisUsernameSecret = neonAPIRateLimit.Redis.UsernameSecretKeyRef != nil &&
+			neonAPIRateLimit.Redis.UsernameSecretKeyRef.Name != "" &&
+			neonAPIRateLimit.Redis.UsernameSecretKeyRef.Key != ""
+		hasRedisPasswordSecret = neonAPIRateLimit.Redis.PasswordSecretKeyRef != nil &&
+			neonAPIRateLimit.Redis.PasswordSecretKeyRef.Name != "" &&
+			neonAPIRateLimit.Redis.PasswordSecretKeyRef.Key != ""
+		hasRedisStorageKeysetSecret = neonAPIRateLimit.Redis.Storage != nil &&
+			neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef != nil &&
+			neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef.Name != "" &&
+			neonAPIRateLimit.Redis.Storage.KeysetSecretKeyRef.Key != ""
+		hasRedisTlsCaSecret = neonAPIRateLimit.Redis.Tls != nil &&
+			neonAPIRateLimit.Redis.Tls.CaSecretKeyRef != nil &&
+			neonAPIRateLimit.Redis.Tls.CaSecretKeyRef.Name != "" &&
+			neonAPIRateLimit.Redis.Tls.CaSecretKeyRef.Key != ""
+		hasRedisTlsCertSecret = neonAPIRateLimit.Redis.Tls != nil &&
+			neonAPIRateLimit.Redis.Tls.CertSecretKeyRef != nil &&
+			neonAPIRateLimit.Redis.Tls.CertSecretKeyRef.Name != "" &&
+			neonAPIRateLimit.Redis.Tls.CertSecretKeyRef.Key != ""
+		hasRedisTlsKeySecret = neonAPIRateLimit.Redis.Tls != nil &&
+			neonAPIRateLimit.Redis.Tls.KeySecretKeyRef != nil &&
+			neonAPIRateLimit.Redis.Tls.KeySecretKeyRef.Name != "" &&
+			neonAPIRateLimit.Redis.Tls.KeySecretKeyRef.Key != ""
+	}
 	hasSecret := hasRedisUsernameSecret ||
 		hasRedisPasswordSecret ||
 		hasRedisStorageKeysetSecret ||
@@ -643,107 +651,7 @@ func createNeonAPIRateLimitMiddleware(
 		hasRedisTlsKeySecret
 	internalConfig := &dynamic.NeonAPIRateLimit{}
 	internalConfig.SetDefaults()
-	if neonAPIRateLimit.Burst > 0 {
-		internalConfig.Burst = neonAPIRateLimit.Burst
-	}
-	if neonAPIRateLimit.Rate > 0 {
-		internalConfig.Rate = neonAPIRateLimit.Rate
-	}
-	if neonAPIRateLimit.Period > 0 {
-		internalConfig.Period = neonAPIRateLimit.Period
-	}
-	if neonAPIRateLimit.Weight > 0 {
-		internalConfig.Weight = neonAPIRateLimit.Weight
-	}
-	internalConfig.ApplyTokenRateLimit = neonAPIRateLimit.ApplyTokenRateLimit
-	if neonAPIRateLimit.TokenBurst > 0 {
-		internalConfig.TokenBurst = neonAPIRateLimit.TokenBurst
-	}
-	if neonAPIRateLimit.TokenRate > 0 {
-		internalConfig.TokenRate = neonAPIRateLimit.TokenRate
-	}
-	if neonAPIRateLimit.TokenPeriod > 0 {
-		internalConfig.TokenPeriod = neonAPIRateLimit.TokenPeriod
-	}
-	if neonAPIRateLimit.TokenWeight > 0 {
-		internalConfig.TokenWeight = neonAPIRateLimit.TokenWeight
-	}
-	if neonAPIRateLimit.TokenHeader != "" {
-		internalConfig.TokenHeader = neonAPIRateLimit.TokenHeader
-	}
-	if neonAPIRateLimit.TokenQueryParam != "" {
-		internalConfig.TokenQueryParam = neonAPIRateLimit.TokenQueryParam
-	}
-	if len(neonAPIRateLimit.SourceRange) > 0 {
-		internalConfig.SourceRange = neonAPIRateLimit.SourceRange
-	}
-	if len(neonAPIRateLimit.RequestMethodsPassthrough) > 0 {
-		internalConfig.RequestMethodsPassthrough = neonAPIRateLimit.RequestMethodsPassthrough
-	}
-	if neonAPIRateLimit.SourceCriterion != nil {
-		if neonAPIRateLimit.SourceCriterion.IPStrategy != nil {
-			if len(neonAPIRateLimit.SourceCriterion.IPStrategy.ExcludedIPs) > 0 {
-				internalConfig.SourceCriterion.IPStrategy.ExcludedIPs = neonAPIRateLimit.SourceCriterion.IPStrategy.ExcludedIPs
-			}
-			if neonAPIRateLimit.SourceCriterion.IPStrategy.Depth >= 0 {
-				internalConfig.SourceCriterion.IPStrategy.Depth = neonAPIRateLimit.SourceCriterion.IPStrategy.Depth
-			}
-		}
-		if neonAPIRateLimit.SourceCriterion.RequestHeaderName != "" {
-			internalConfig.SourceCriterion.RequestHeaderName = neonAPIRateLimit.SourceCriterion.RequestHeaderName
-		}
-		internalConfig.SourceCriterion.RequestHost = neonAPIRateLimit.SourceCriterion.RequestHost
-	}
-	if neonAPIRateLimit.Scopes != nil {
-		if neonAPIRateLimit.Scopes.ClaimName != "" {
-			internalConfig.Scopes.ClaimName = neonAPIRateLimit.Scopes.ClaimName
-		}
-		if len(neonAPIRateLimit.Scopes.PrefixFilter) > 0 {
-			internalConfig.Scopes.PrefixFilter = neonAPIRateLimit.Scopes.PrefixFilter
-		}
-		if neonAPIRateLimit.Scopes.ServiceScopeName != "" {
-			internalConfig.Scopes.ServiceScopeName = neonAPIRateLimit.Scopes.ServiceScopeName
-		}
-		if neonAPIRateLimit.Scopes.RateScopeUnlimitedName != "" {
-			internalConfig.Scopes.RateScopeUnlimitedName = neonAPIRateLimit.Scopes.RateScopeUnlimitedName
-		}
-		if neonAPIRateLimit.Scopes.RateScopeLimitedName != "" {
-			internalConfig.Scopes.RateScopeLimitedName = neonAPIRateLimit.Scopes.RateScopeLimitedName
-		}
-	}
-	if neonAPIRateLimit.Redis != nil {
-		if neonAPIRateLimit.Redis.Host != "" {
-			internalConfig.Redis.Host = neonAPIRateLimit.Redis.Host
-		}
-		if neonAPIRateLimit.Redis.Port > 0 {
-			internalConfig.Redis.Port = neonAPIRateLimit.Redis.Port
-		}
-		if neonAPIRateLimit.Redis.Database >= 0 {
-			internalConfig.Redis.Database = neonAPIRateLimit.Redis.Database
-		}
-		if neonAPIRateLimit.Redis.KeyPrefix != "" {
-			internalConfig.Redis.KeyPrefix = neonAPIRateLimit.Redis.KeyPrefix
-		}
-		internalConfig.Redis.UseTls = neonAPIRateLimit.Redis.UseTls
-		if neonAPIRateLimit.Redis.Tls != nil {
-			internalConfig.Redis.Tls.Verify = neonAPIRateLimit.Redis.Tls.Verify
-			internalConfig.Redis.Tls.UseMTls = neonAPIRateLimit.Redis.Tls.UseMTls
-		}
-		if neonAPIRateLimit.Redis.Storage != nil {
-			internalConfig.Redis.Storage.Encrypt = neonAPIRateLimit.Redis.Storage.Encrypt
-		}
-	}
-	if neonAPIRateLimit.AuthService != nil {
-		if neonAPIRateLimit.AuthService.ServiceUrl != "" {
-			internalConfig.AuthService.ServiceUrl = neonAPIRateLimit.AuthService.ServiceUrl
-		}
-		if neonAPIRateLimit.AuthService.TokenVerifyEndpoint != "" {
-			internalConfig.AuthService.TokenVerifyEndpoint = neonAPIRateLimit.AuthService.TokenVerifyEndpoint
-		}
-		if neonAPIRateLimit.AuthService.TokenHeader != "" {
-			internalConfig.AuthService.TokenHeader = neonAPIRateLimit.AuthService.TokenHeader
-		}
-	}
+	copyNeonAPIRateLimit(neonAPIRateLimit, internalConfig)
 	if !hasSecret {
 		return internalConfig, nil
 	}
@@ -850,6 +758,110 @@ func createNeonAPIRateLimitMiddleware(
 		}
 	}
 	return internalConfig, nil
+}
+
+func copyNeonAPIRateLimit(in *traefikv1alpha1.NeonAPIRateLimit, out *dynamic.NeonAPIRateLimit) {
+	if in.Burst > 0 {
+		out.Burst = in.Burst
+	}
+	if in.Rate > 0 {
+		out.Rate = in.Rate
+	}
+	if in.Period > 0 {
+		out.Period = in.Period
+	}
+	if in.Weight > 0 {
+		out.Weight = in.Weight
+	}
+	out.ApplyTokenRateLimit = in.ApplyTokenRateLimit
+	if in.TokenBurst > 0 {
+		out.TokenBurst = in.TokenBurst
+	}
+	if in.TokenRate > 0 {
+		out.TokenRate = in.TokenRate
+	}
+	if in.TokenPeriod > 0 {
+		out.TokenPeriod = in.TokenPeriod
+	}
+	if in.TokenWeight > 0 {
+		out.TokenWeight = in.TokenWeight
+	}
+	if in.TokenHeader != "" {
+		out.TokenHeader = in.TokenHeader
+	}
+	if in.TokenQueryParam != "" {
+		out.TokenQueryParam = in.TokenQueryParam
+	}
+	if len(in.SourceRange) > 0 {
+		out.SourceRange = in.SourceRange
+	}
+	if len(in.RequestMethodsPassthrough) > 0 {
+		out.RequestMethodsPassthrough = in.RequestMethodsPassthrough
+	}
+	if in.SourceCriterion != nil {
+		if in.SourceCriterion.IPStrategy != nil {
+			if len(in.SourceCriterion.IPStrategy.ExcludedIPs) > 0 {
+				out.SourceCriterion.IPStrategy.ExcludedIPs = in.SourceCriterion.IPStrategy.ExcludedIPs
+			}
+			if in.SourceCriterion.IPStrategy.Depth >= 0 {
+				out.SourceCriterion.IPStrategy.Depth = in.SourceCriterion.IPStrategy.Depth
+			}
+		}
+		if in.SourceCriterion.RequestHeaderName != "" {
+			out.SourceCriterion.RequestHeaderName = in.SourceCriterion.RequestHeaderName
+		}
+		out.SourceCriterion.RequestHost = in.SourceCriterion.RequestHost
+	}
+	if in.Scopes != nil {
+		if in.Scopes.ClaimName != "" {
+			out.Scopes.ClaimName = in.Scopes.ClaimName
+		}
+		if len(in.Scopes.PrefixFilter) > 0 {
+			out.Scopes.PrefixFilter = in.Scopes.PrefixFilter
+		}
+		if in.Scopes.ServiceScopeName != "" {
+			out.Scopes.ServiceScopeName = in.Scopes.ServiceScopeName
+		}
+		if in.Scopes.RateScopeUnlimitedName != "" {
+			out.Scopes.RateScopeUnlimitedName = in.Scopes.RateScopeUnlimitedName
+		}
+		if in.Scopes.RateScopeLimitedName != "" {
+			out.Scopes.RateScopeLimitedName = in.Scopes.RateScopeLimitedName
+		}
+	}
+	if in.Redis != nil {
+		if in.Redis.Host != "" {
+			out.Redis.Host = in.Redis.Host
+		}
+		if in.Redis.Port > 0 {
+			out.Redis.Port = in.Redis.Port
+		}
+		if in.Redis.Database >= 0 {
+			out.Redis.Database = in.Redis.Database
+		}
+		if in.Redis.KeyPrefix != "" {
+			out.Redis.KeyPrefix = in.Redis.KeyPrefix
+		}
+		out.Redis.UseTls = in.Redis.UseTls
+		if in.Redis.Tls != nil {
+			out.Redis.Tls.Verify = in.Redis.Tls.Verify
+			out.Redis.Tls.UseMTls = in.Redis.Tls.UseMTls
+		}
+		if in.Redis.Storage != nil {
+			out.Redis.Storage.Encrypt = in.Redis.Storage.Encrypt
+		}
+	}
+	if in.AuthService != nil {
+		if in.AuthService.ServiceUrl != "" {
+			out.AuthService.ServiceUrl = in.AuthService.ServiceUrl
+		}
+		if in.AuthService.TokenVerifyEndpoint != "" {
+			out.AuthService.TokenVerifyEndpoint = in.AuthService.TokenVerifyEndpoint
+		}
+		if in.AuthService.TokenHeader != "" {
+			out.AuthService.TokenHeader = in.AuthService.TokenHeader
+		}
+	}
 }
 
 func createRetryMiddleware(retry *traefikv1alpha1.Retry) (*dynamic.Retry, error) {
