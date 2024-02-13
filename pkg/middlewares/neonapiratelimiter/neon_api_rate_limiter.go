@@ -406,8 +406,9 @@ func initRedisTlsConfig(
 			hasCaFile = true
 		}
 		var rootCaFileData []byte
+		var err error
 		if hasCaFile {
-			rootCaFileData, err := os.ReadFile(appliedCa)
+			rootCaFileData, err = os.ReadFile(appliedCa)
 			if err != nil || rootCaFileData == nil {
 				logger.Errorf("failed to read CA cert file: [%v]", err)
 				return nil, errors.New("failed to initialize Redis CA cert, client")
@@ -437,6 +438,7 @@ func initRedisTlsConfig(
 		}
 		var certFileData []byte
 		var keyFileData []byte
+		var err error
 		hasCertFile := false
 		hasKeyFile := false
 		if _, err := os.Stat(appliedCert); err == nil {
@@ -446,7 +448,7 @@ func initRedisTlsConfig(
 			hasKeyFile = true
 		}
 		if hasCertFile {
-			certFileData, err := os.ReadFile(appliedCert)
+			certFileData, err = os.ReadFile(appliedCert)
 			if err != nil || certFileData == nil {
 				logger.Errorf("failed to read cert file: [%v]", err)
 				return nil, errors.New("failed to initialize Redis cert, client")
@@ -455,7 +457,7 @@ func initRedisTlsConfig(
 			certFileData = []byte(appliedCert)
 		}
 		if hasKeyFile {
-			keyFileData, err := os.ReadFile(appliedKey)
+			keyFileData, err = os.ReadFile(appliedKey)
 			if err != nil || keyFileData == nil {
 				logger.Errorf("failed to read key file: [%v]", err)
 				return nil, errors.New("failed to initialize Redis key, client")
@@ -506,6 +508,7 @@ func initRedisStorageConfig(
 		// Keyset definition references the raw data.
 		reader = keyset.NewBinaryReader(bytes.NewReader([]byte(appliedKeyset)))
 	} else {
+		logger.Info("creating new tink keyset handle")
 		// Create new DeterministicAEAD keyset if not found.
 		keysetHandle, err := keyset.NewHandle(daead.AESSIVKeyTemplate())
 		if err != nil {
