@@ -140,6 +140,9 @@ http:
           - foobar
           - foobar
         minResponseBodyBytes: 42
+        acceptedContentTypes:
+          - foobar
+          - foobar
     Middleware07:
       contentType:
         autoDetect: true
@@ -262,6 +265,62 @@ http:
           requestHeaderName: foobar
           requestHost: true
     Middleware15:
+      neonAPIRateLimit:
+        burst: 42
+        rate: 42
+        period: 42
+        weight: 42
+        applyTokenRateLimit: true
+        tokenBurst: 42
+        tokenRate: 42
+        tokenPeriod: 42
+        tokenWeight: 42
+        tokenHeader: foobar
+        tokenQueryParam: foobar
+        sourceCriterion:
+          ipStrategy:
+            depth: 42
+            excludedIPs:
+              - foobar
+              - foobar
+          requestHeaderName: foobar
+          requestHost: true
+        sourceRange:
+          - foobar
+          - foobar
+        requestMethodsPassthrough:
+          - foobar
+          - foobar
+        scopes:
+          claimName: foobar
+          prefixFilter:
+            - foobar
+            - foobar
+          serviceScopeName: foobar
+          rateScopeUnlimitedName: foobar
+          rateScopeLimitedName: foobar
+        redis:
+          host: foobar
+          port: 42
+          database: 42
+          keyPrefix: foobar
+          username: foobar
+          password: foobar
+          useTls: true
+          tls:
+            verify: true
+            useMTls: true
+            ca: foobar
+            cert: foobar
+            key: foobar
+          storage:
+            encrypt: true
+            keyset: foobar
+        authService:
+          serviceUrl: foobar
+          tokenVerifyEndpoint: foobar
+          tokenHeader: foobar
+    Middleware16:
       passTLSClientCert:
         pem: true
         info:
@@ -286,7 +345,7 @@ http:
             commonName: true
             serialNumber: true
             domainComponent: true
-    Middleware16:
+    Middleware17:
       plugin:
         PluginConf0:
           name0: foobar
@@ -294,7 +353,7 @@ http:
         PluginConf1:
           name0: foobar
           name1: foobar
-    Middleware17:
+    Middleware18:
       rateLimit:
         average: 42
         period: 42s
@@ -307,34 +366,34 @@ http:
               - foobar
           requestHeaderName: foobar
           requestHost: true
-    Middleware18:
+    Middleware19:
       redirectRegex:
         regex: foobar
         replacement: foobar
         permanent: true
-    Middleware19:
+    Middleware20:
       redirectScheme:
         scheme: foobar
         port: foobar
         permanent: true
-    Middleware20:
+    Middleware21:
       replacePath:
         path: foobar
-    Middleware21:
+    Middleware22:
       replacePathRegex:
         regex: foobar
         replacement: foobar
-    Middleware22:
+    Middleware23:
       retry:
         attempts: 42
         initialInterval: 42s
-    Middleware23:
+    Middleware24:
       stripPrefix:
         prefixes:
           - foobar
           - foobar
         forceSlash: true
-    Middleware24:
+    Middleware25:
       stripPrefixRegex:
         regex:
           - foobar

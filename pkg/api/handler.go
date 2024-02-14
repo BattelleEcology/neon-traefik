@@ -30,6 +30,7 @@ func writeError(rw http.ResponseWriter, msg string, code int) {
 
 type serviceInfoRepresentation struct {
 	*runtime.ServiceInfo
+	Status       string            `json:"status,omitempty"`
 	ServerStatus map[string]string `json:"serverStatus,omitempty"`
 }
 
@@ -119,6 +120,7 @@ func (h Handler) getRuntimeConfiguration(rw http.ResponseWriter, request *http.R
 	for k, v := range h.runtimeConfiguration.Services {
 		siRepr[k] = &serviceInfoRepresentation{
 			ServiceInfo:  v,
+			Status:       v.GetStatusRollup(),
 			ServerStatus: v.GetAllStatus(),
 		}
 	}

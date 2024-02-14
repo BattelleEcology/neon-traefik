@@ -549,7 +549,7 @@ func TestLBStatusUpdater(t *testing.T) {
 	assert.Len(t, statuses, 1)
 	for k, v := range statuses {
 		assert.Equal(t, newServer.String(), k)
-		assert.Equal(t, serverUp, v)
+		assert.Equal(t, runtime.ServerUp, v)
 		break
 	}
 	err = lbsu.RemoveServer(newServer)
@@ -559,7 +559,7 @@ func TestLBStatusUpdater(t *testing.T) {
 	assert.Len(t, statuses, 1)
 	for k, v := range statuses {
 		assert.Equal(t, newServer.String(), k)
-		assert.Equal(t, serverDown, v)
+		assert.Equal(t, runtime.ServerDown, v)
 		break
 	}
 }

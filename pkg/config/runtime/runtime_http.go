@@ -12,6 +12,12 @@ import (
 	"github.com/traefik/traefik/v2/pkg/log"
 )
 
+// Status of the server instance.
+const (
+	ServerUp   = "UP"
+	ServerDown = "DOWN"
+)
+
 // GetRoutersByEntryPoints returns all the http routers by entry points name and routers name.
 func (c *Configuration) GetRoutersByEntryPoints(ctx context.Context, entryPoints []string, tls bool) map[string]map[string]*RouterInfo {
 	entryPointsRouters := make(map[string]map[string]*RouterInfo)
@@ -147,6 +153,11 @@ type ServiceInfo struct {
 	serverStatus   map[string]string // keyed by server URL
 }
 
+// GetServerStatus gets the server status keyed by server URL.
+func (s *ServiceInfo) GetServerStatus() map[string]string {
+	return s.serverStatus
+}
+
 // AddError adds err to s.Err, if it does not already exist.
 // If critical is set, s is marked as disabled.
 func (s *ServiceInfo) AddError(err error, critical bool) {
@@ -195,4 +206,46 @@ func (s *ServiceInfo) GetAllStatus() map[string]string {
 		allStatus[k] = v
 	}
 	return allStatus
+}
+
+// GetStatusRollup returns the aggregate state of the service and all server status.
+// It is the responsibility of the caller to check that s is not nil
+func (s *ServiceInfo) GetStatusRollup() string {
+	serverStatus := s.GetAllStatusRollup()
+	if s.Status == StatusEnabled && serverStatus == StatusEnabled {
+		return StatusEnabled
+	} else if s.Status == StatusDisabled || serverStatus == StatusDisabled {
+		return StatusDisabled
+	}
+	return StatusWarning
+}
+
+// GetAllStatusRollup returns the aggregate state of all server status.
+// It is the responsibility of the caller to check that s is not nil
+func (s *ServiceInfo) GetAllStatusRollup() string {
+	allStatus := s.GetAllStatus()
+	if allStatus == nil {
+		return StatusEnabled
+	}
+	s.serverStatusMu.RLock()
+	defer s.serverStatusMu.RUnlock()
+
+	allUp := true
+	allDown := true
+	for _, v := range allStatus {
+		if v != ServerUp {
+			allUp = false
+		} else {
+			allDown = false
+		}
+	}
+
+	state := StatusEnabled
+	if allDown {
+		state = StatusDisabled
+	} else if !allUp {
+		state = StatusWarning
+	}
+
+	return state
 }

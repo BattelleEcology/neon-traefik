@@ -158,6 +158,66 @@ func TestShouldNotCompressWhenSpecificContentType(t *testing.T) {
 	}
 }
 
+func TestShouldCompressWhenSpecificContentType(t *testing.T) {
+	baseBody := generateBytes(gzhttp.DefaultMinSize)
+
+	next := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		_, err := rw.Write(baseBody)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+	})
+
+	testCases := []struct {
+		desc           string
+		shouldCompress bool
+		conf           dynamic.Compress
+		resContentType string
+	}{
+		{
+			desc:           "application/json compress",
+			shouldCompress: true,
+			conf: dynamic.Compress{
+				AcceptedContentTypes: []string{"application/json"},
+			},
+			resContentType: "application/json",
+		},
+		{
+			desc:           "application/pdf skip compress",
+			shouldCompress: false,
+			conf: dynamic.Compress{
+				AcceptedContentTypes: []string{"application/json"},
+			},
+			resContentType: "application/pdf",
+		},
+	}
+
+	for _, test := range testCases {
+		test := test
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			req := testhelpers.MustNewRequest(http.MethodGet, "http://localhost", nil)
+			req.Header.Add(acceptEncodingHeader, gzipValue)
+
+			handler, err := New(context.Background(), next, test.conf, "test")
+			require.NoError(t, err)
+
+			rw := httptest.NewRecorder()
+			rw.Header().Add("Content-Type", test.resContentType)
+			handler.ServeHTTP(rw, req)
+
+			if test.shouldCompress {
+				assert.EqualValues(t, gzipValue, rw.Header().Get(contentEncodingHeader))
+				assert.NotEqual(t, rw.Body.Bytes(), baseBody)
+			} else {
+				assert.Empty(t, rw.Header().Get(contentEncodingHeader))
+				assert.EqualValues(t, rw.Body.Bytes(), baseBody)
+			}
+		})
+	}
+}
+
 func TestIntegrationShouldNotCompress(t *testing.T) {
 	fakeCompressedBody := generateBytes(100000)
 

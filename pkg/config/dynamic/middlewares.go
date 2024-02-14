@@ -23,6 +23,7 @@ type Middleware struct {
 	Headers           *Headers           `json:"headers,omitempty" toml:"headers,omitempty" yaml:"headers,omitempty" export:"true"`
 	Errors            *ErrorPage         `json:"errors,omitempty" toml:"errors,omitempty" yaml:"errors,omitempty" export:"true"`
 	RateLimit         *RateLimit         `json:"rateLimit,omitempty" toml:"rateLimit,omitempty" yaml:"rateLimit,omitempty" export:"true"`
+	NeonAPIRateLimit  *NeonAPIRateLimit  `json:"neonAPIRateLimit,omitempty" toml:"neonAPIRateLimit,omitempty" yaml:"neonAPIRateLimit,omitempty" export:"true"`
 	RedirectRegex     *RedirectRegex     `json:"redirectRegex,omitempty" toml:"redirectRegex,omitempty" yaml:"redirectRegex,omitempty" export:"true"`
 	RedirectScheme    *RedirectScheme    `json:"redirectScheme,omitempty" toml:"redirectScheme,omitempty" yaml:"redirectScheme,omitempty" export:"true"`
 	BasicAuth         *BasicAuth         `json:"basicAuth,omitempty" toml:"basicAuth,omitempty" yaml:"basicAuth,omitempty" export:"true"`
@@ -154,7 +155,8 @@ type Compress struct {
 	ExcludedContentTypes []string `json:"excludedContentTypes,omitempty" toml:"excludedContentTypes,omitempty" yaml:"excludedContentTypes,omitempty" export:"true"`
 	// MinResponseBodyBytes defines the minimum amount of bytes a response body must have to be compressed.
 	// Default: 1024.
-	MinResponseBodyBytes int `json:"minResponseBodyBytes,omitempty" toml:"minResponseBodyBytes,omitempty" yaml:"minResponseBodyBytes,omitempty" export:"true"`
+	MinResponseBodyBytes int      `json:"minResponseBodyBytes,omitempty" toml:"minResponseBodyBytes,omitempty" yaml:"minResponseBodyBytes,omitempty" export:"true"`
+	AcceptedContentTypes []string `json:"acceptedContentTypes,omitempty" toml:"acceptedContentTypes,omitempty" yaml:"acceptedContentTypes,omitempty" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -477,6 +479,193 @@ type RateLimit struct {
 func (r *RateLimit) SetDefaults() {
 	r.Burst = 1
 	r.Period = ptypes.Duration(time.Second)
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitAuthService holds the auth service configuration for NeonAPIRateLimit.
+type NeonAPIRateLimitAuthService struct {
+	// The URL of the authentication service.
+	ServiceUrl string `json:"serviceUrl,omitempty" toml:"serviceUrl,omitempty" yaml:"serviceUrl,omitempty"`
+	// The path of the token verification endpoint.
+	TokenVerifyEndpoint string `json:"tokenVerifyEndpoint,omitempty" toml:"tokenVerifyEndpoint,omitempty" yaml:"tokenVerifyEndpoint,omitempty"`
+	// TokenHeader is the header name to pass the API Token to the verify endpoint.
+	TokenHeader string `json:"tokenHeader,omitempty" toml:"tokenHeader,omitempty" yaml:"tokenHeader,omitempty"`
+}
+
+// SetDefaults sets the default values on a NeonAPIRateLimitAuthService.
+func (r *NeonAPIRateLimitAuthService) SetDefaults() {
+	// No applicable defaults for the auth service configuration.
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitRedisTls holds the Redis TLS configuration for NeonAPIRateLimit.
+type NeonAPIRateLimitRedisTls struct {
+	// Optionally apply verification for the TLS connection to Redis.
+	Verify bool `json:"verify,omitempty" toml:"verify,omitempty" yaml:"verify,omitempty"`
+	// Optionally apply mTLS for the TLS connection to Redis.
+	UseMTls bool `json:"useMTls,omitempty" toml:"useMTls,omitempty" yaml:"useMTls,omitempty"`
+	// The certificate authority certificate.
+	Ca string `json:"-" toml:"ca,omitempty" yaml:"ca,omitempty"`
+	// Public certificate used for the secure connection to Redis.
+	Cert string `json:"-" toml:"cert,omitempty" yaml:"cert,omitempty"`
+	// Private key used for the secure connection to Redis.
+	Key string `json:"-" toml:"key,omitempty" yaml:"key,omitempty"`
+}
+
+// SetDefaults sets the default values on a NeonAPIRateLimitRedisTls.
+func (r *NeonAPIRateLimitRedisTls) SetDefaults() {
+	r.Verify = false
+	r.UseMTls = false
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitRedisStorage holds the Redis storage configuration for the NeonAPIRateLimit.
+type NeonAPIRateLimitRedisStorage struct {
+	// Optionally encrypt data stored in Redis.
+	Encrypt bool `json:"encrypt,omitempty" toml:"encrypt,omitempty" yaml:"encrypt,omitempty"`
+	// Specify the full path to the Tink keyset file. Required when encrypt is true.
+	// If the file does not exist, it will be generated.
+	Keyset string `json:"-" toml:"keyset,omitempty" yaml:"keyset,omitempty"`
+}
+
+// SetDefaults sets the default values on a NeonAPIRateLimitRedisStorage.
+func (r *NeonAPIRateLimitRedisStorage) SetDefaults() {
+	r.Encrypt = false
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitRedis holds the redis configuration for a given router.
+type NeonAPIRateLimitRedis struct {
+	// The Redis host to connect to.
+	Host string `json:"host,omitempty" toml:"host,omitempty" yaml:"host,omitempty"`
+	// The Redis port to connect to.
+	Port int `json:"port,omitempty" toml:"port,omitempty" yaml:"port,omitempty"`
+	// The Redis database to connect to.
+	Database int `json:"database,omitempty" toml:"database,omitempty" yaml:"database,omitempty"`
+	// KeyPrefix is the prefix to assign to rate limiting state in Redis.
+	KeyPrefix string `json:"keyPrefix,omitempty" toml:"keyPrefix,omitempty" yaml:"keyPrefix,omitempty"`
+	// The name of the redis user to connect with.
+	Username string `json:"-" toml:"username,omitempty" yaml:"username,omitempty"`
+	// The password of the redis user to connect with.
+	Password string `json:"-" toml:"password,omitempty" yaml:"password,omitempty"`
+	// Optionally apply the TLS configuration when connecting with Redis.
+	UseTls bool `json:"useTls,omitempty" toml:"useTls,omitempty" yaml:"useTls,omitempty"`
+	// TLS configuration options.
+	Tls *NeonAPIRateLimitRedisTls `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty"`
+	// Storage configuration options.
+	Storage *NeonAPIRateLimitRedisStorage `json:"storage,omitempty" toml:"storage,omitempty" yaml:"storage,omitempty"`
+}
+
+// SetDefaults sets the default values on a NeonAPIRateLimitRedis.
+func (r *NeonAPIRateLimitRedis) SetDefaults() {
+	r.Port = 6379
+	r.Database = 0
+	r.UseTls = false
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitScopes holds the token scopes configuration for NeonAPIRateLimit.
+type NeonAPIRateLimitScopes struct {
+	// ClaimName is the name of the scopes claim to pull from the API Token.
+	ClaimName string `json:"claimName,omitempty" toml:"claimName,omitempty" yaml:"claimName,omitempty"`
+	// PrefixFilter specifies the set of scope prefixes that should be considered for rate limit handling.
+	PrefixFilter []string `json:"prefixFilter,omitempty" toml:"prefixFilter,omitempty" yaml:"prefixFilter,omitempty"`
+	// ServiceScopeName is the name of the service level scope.
+	ServiceScopeName string `json:"serviceScopeName,omitempty" toml:"serviceScopeName,omitempty" yaml:"serviceScopeName,omitempty"`
+	// RateScopeUnlimitedName is the name of the unlimited rate level scope.
+	RateScopeUnlimitedName string `json:"rateScopeUnlimitedName,omitempty" toml:"rateScopeUnlimitedName,omitempty" yaml:"rateScopeUnlimitedName,omitempty"`
+	// RateScopeLimitedName is the name of the limited rate level scope.
+	RateScopeLimitedName string `json:"rateScopeLimitedName,omitempty" toml:"rateScopeLimitedName,omitempty" yaml:"rateScopeLimitedName,omitempty"`
+}
+
+// SetDefaults sets the default values on a NeonAPIRateLimitScopes.
+func (r *NeonAPIRateLimitScopes) SetDefaults() {
+	r.PrefixFilter = make([]string, 0)
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimit holds the rate limiting configuration for a given router.
+type NeonAPIRateLimit struct {
+	// Burst is the maximum number of requests allowed to arrive in the same arbitrarily small period of time.
+	// It defaults to 1000.
+	Burst int64 `json:"burst,omitempty" toml:"burst,omitempty" yaml:"burst,omitempty"`
+	// Rate is the number of tokens allowed to be taken in a give period.
+	// It defaults to 1000.
+	Rate int64 `json:"rate,omitempty" toml:"rate,omitempty" yaml:"rate,omitempty"`
+	// Period is the length of time in seconds.
+	// It defaults to 600.
+	Period int64 `json:"period,omitempty" toml:"period,omitempty" yaml:"period,omitempty"`
+	// Weight is the number of tokens to take per request.
+	// It defaults to 1.
+	Weight int64 `json:"weight,omitempty" toml:"weight,omitempty" yaml:"weight,omitempty"`
+	// ApplyTokenRateLimit allows specifiying whether or not to apply rate limiting to valid tokens.
+	// It default to true.
+	ApplyTokenRateLimit bool `json:"applyTokenRateLimit,omitempty" toml:"applyTokenRateLimit,omitempty" yaml:"applyTokenRateLimit,omitempty"`
+	// Burst is the maximum number of requests allowed to arrive in the same arbitrarily small period of time.
+	// It defaults to 1000.
+	TokenBurst int64 `json:"tokenBurst,omitempty" toml:"tokenBurst,omitempty" yaml:"tokenBurst,omitempty"`
+	// Rate is the number of tokens allowed to be taken in a give period.
+	// It defaults to 1000.
+	TokenRate int64 `json:"tokenRate,omitempty" toml:"tokenRate,omitempty" yaml:"tokenRate,omitempty"`
+	// Period is the length of time in seconds.
+	// It defaults to 600.
+	TokenPeriod int64 `json:"tokenPeriod,omitempty" toml:"tokenPeriod,omitempty" yaml:"tokenPeriod,omitempty"`
+	// Weight is the number of tokens to take per request.
+	// It defaults to 1.
+	TokenWeight int64 `json:"tokenWeight,omitempty" toml:"tokenWeight,omitempty" yaml:"tokenWeight,omitempty"`
+	// TokenHeader is the header name to pull the API Token from.
+	TokenHeader string `json:"tokenHeader,omitempty" toml:"tokenHeader,omitempty" yaml:"tokenHeader,omitempty"`
+	// TokenQueryParam is the query param name to pull the API Token from.
+	TokenQueryParam string `json:"tokenQueryParam,omitempty" toml:"tokenQueryParam,omitempty" yaml:"tokenQueryParam,omitempty"`
+	// Source handling criteria.
+	SourceCriterion *SourceCriterion `json:"sourceCriterion,omitempty" toml:"sourceCriterion,omitempty" yaml:"sourceCriterion,omitempty"`
+	// SourceRange defines white listed URLs for bypassing rate limiting when SourceCriterion is using the IPStrategy.
+	SourceRange []string `json:"sourceRange,omitempty" toml:"sourceRange,omitempty" yaml:"sourceRange,omitempty"`
+	// RequestMethodsPassthrough allows specifiying a set of request method types that should not be rate limited.
+	RequestMethodsPassthrough []string `json:"requestMethodsPassthrough,omitempty" toml:"requestMethodsPassthrough,omitempty" yaml:"requestMethodsPassthrough,omitempty"`
+	// Scopes configuration.
+	Scopes *NeonAPIRateLimitScopes `json:"scopes,omitempty" toml:"scopes,omitempty" yaml:"scopes,omitempty"`
+	// Redis configuration.
+	Redis *NeonAPIRateLimitRedis `json:"redis,omitempty" toml:"redis,omitempty" yaml:"redis,omitempty"`
+	// Auth data service configuration.
+	AuthService *NeonAPIRateLimitAuthService `json:"authService,omitempty" toml:"authService,omitempty" yaml:"authService,omitempty"`
+}
+
+// SetDefaults sets the default values on a NeonAPIRateLimit.
+func (r *NeonAPIRateLimit) SetDefaults() {
+	r.Burst = 1000
+	r.Rate = 1000
+	r.Period = 600
+	r.Weight = 1
+	r.ApplyTokenRateLimit = true
+	r.TokenBurst = 1000
+	r.TokenRate = 1000
+	r.TokenPeriod = 600
+	r.TokenWeight = 1
+	r.SourceCriterion = &SourceCriterion{
+		IPStrategy: &IPStrategy{},
+	}
+	scopes := &NeonAPIRateLimitScopes{}
+	scopes.SetDefaults()
+	r.Scopes = scopes
+	redis := &NeonAPIRateLimitRedis{}
+	redis.SetDefaults()
+	redisTls := &NeonAPIRateLimitRedisTls{}
+	redisTls.SetDefaults()
+	redis.Tls = redisTls
+	redisStorage := &NeonAPIRateLimitRedisStorage{}
+	redisStorage.SetDefaults()
+	redis.Storage = redisStorage
+	r.Redis = redis
+	authService := &NeonAPIRateLimitAuthService{}
+	authService.SetDefaults()
+	r.AuthService = authService
 }
 
 // +k8s:deepcopy-gen=true

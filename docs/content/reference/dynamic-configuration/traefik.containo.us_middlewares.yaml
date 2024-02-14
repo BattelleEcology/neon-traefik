@@ -179,6 +179,10 @@ spec:
                   This middleware compresses responses before sending them to the client, using gzip compression.
                   More info: https://doc.traefik.io/traefik/v2.11/middlewares/http/compress/
                 properties:
+                  acceptedContentTypes:
+                    items:
+                      type: string
+                    type: array
                   excludedContentTypes:
                     description: ExcludedContentTypes defines the list of content
                       types to compare the Content-Type header of the incoming requests
@@ -683,6 +687,267 @@ spec:
                     items:
                       type: string
                     type: array
+                type: object
+              neonAPIRateLimit:
+                description: NeonAPIRateLimit holds the rate limiting configuration
+                  for a given router.
+                properties:
+                  applyTokenRateLimit:
+                    description: |-
+                      ApplyTokenRateLimit allows specifiying whether or not to apply rate limiting to valid tokens.
+                      It default to true.
+                    type: boolean
+                  authService:
+                    description: Auth data service configuration.
+                    properties:
+                      serviceUrl:
+                        description: The URL of the authentication service.
+                        type: string
+                      tokenHeader:
+                        description: TokenHeader is the header name to pass the API
+                          Token to the verify endpoint.
+                        type: string
+                      tokenVerifyEndpoint:
+                        description: The path of the token verification endpoint.
+                        type: string
+                    type: object
+                  burst:
+                    description: |-
+                      Burst is the maximum number of requests allowed to arrive in the same arbitrarily small period of time.
+                      It defaults to 1000.
+                    format: int64
+                    type: integer
+                  period:
+                    description: |-
+                      Period is the length of time in seconds.
+                      It defaults to 600.
+                    format: int64
+                    type: integer
+                  rate:
+                    description: |-
+                      Rate is the number of tokens allowed to be taken in a give period.
+                      It defaults to 1000.
+                    format: int64
+                    type: integer
+                  redis:
+                    description: Redis configuration.
+                    properties:
+                      database:
+                        description: The Redis database to connect to.
+                        type: integer
+                      host:
+                        description: The Redis host to connect to.
+                        type: string
+                      keyPrefix:
+                        description: KeyPrefix is the prefix to assign to rate limiting
+                          state in Redis.
+                        type: string
+                      passwordSecretKeyRef:
+                        description: The secret key ref of the password of the redis
+                          user to connect with.
+                        properties:
+                          key:
+                            description: The name of the key in the secret to pull
+                              from.
+                            type: string
+                          name:
+                            description: The name of the secret.
+                            type: string
+                        type: object
+                      port:
+                        description: The Redis port to connect to.
+                        type: integer
+                      storage:
+                        description: Storage configuration options.
+                        properties:
+                          encrypt:
+                            description: Optionally encrypt data stored in Redis.
+                            type: boolean
+                          keysetSecretKeyRef:
+                            description: |-
+                              The keyset secret ref for the Tink keyset. Required when encrypt is true.
+                              If the file/data does not exist, it will be generated.
+                            properties:
+                              key:
+                                description: The name of the key in the secret to
+                                  pull from.
+                                type: string
+                              name:
+                                description: The name of the secret.
+                                type: string
+                            type: object
+                        type: object
+                      tls:
+                        description: TLS configuration options.
+                        properties:
+                          caSecretKeyRef:
+                            description: The certificate authority certificate secret
+                              key ref.
+                            properties:
+                              key:
+                                description: The name of the key in the secret to
+                                  pull from.
+                                type: string
+                              name:
+                                description: The name of the secret.
+                                type: string
+                            type: object
+                          certSecretKeyRef:
+                            description: Public certificate secret key ref used for
+                              the secure connection to Redis.
+                            properties:
+                              key:
+                                description: The name of the key in the secret to
+                                  pull from.
+                                type: string
+                              name:
+                                description: The name of the secret.
+                                type: string
+                            type: object
+                          keySecretKeyRef:
+                            description: Private key secret key ref used for the secure
+                              connection to Redis.
+                            properties:
+                              key:
+                                description: The name of the key in the secret to
+                                  pull from.
+                                type: string
+                              name:
+                                description: The name of the secret.
+                                type: string
+                            type: object
+                          useMTls:
+                            description: Optionally apply mTLS for the TLS connection
+                              to Redis.
+                            type: boolean
+                          verify:
+                            description: Optionally apply verification for the TLS
+                              connection to Redis.
+                            type: boolean
+                        type: object
+                      useTls:
+                        description: Optionally apply the TLS configuration when connecting
+                          with Redis.
+                        type: boolean
+                      usernameSecretKeyRef:
+                        description: The secret key ref of the name of the redis user
+                          to connect with.
+                        properties:
+                          key:
+                            description: The name of the key in the secret to pull
+                              from.
+                            type: string
+                          name:
+                            description: The name of the secret.
+                            type: string
+                        type: object
+                    type: object
+                  requestMethodsPassthrough:
+                    description: RequestMethodsPassthrough allows specifiying a set
+                      of request method types that should not be rate limited.
+                    items:
+                      type: string
+                    type: array
+                  scopes:
+                    description: Scopes configuration.
+                    properties:
+                      claimName:
+                        description: ClaimName is the name of the scopes claim to
+                          pull from the API Token.
+                        type: string
+                      prefixFilter:
+                        description: PrefixFilter specifies the set of scope prefixes
+                          that should be considered for rate limit handling.
+                        items:
+                          type: string
+                        type: array
+                      rateScopeLimitedName:
+                        description: RateScopeLimitedName is the name of the limited
+                          rate level scope.
+                        type: string
+                      rateScopeUnlimitedName:
+                        description: RateScopeUnlimitedName is the name of the unlimited
+                          rate level scope.
+                        type: string
+                      serviceScopeName:
+                        description: ServiceScopeName is the name of the service level
+                          scope.
+                        type: string
+                    type: object
+                  sourceCriterion:
+                    description: Source handling criteria.
+                    properties:
+                      ipStrategy:
+                        description: |-
+                          IPStrategy holds the IP strategy configuration used by Traefik to determine the client IP.
+                          More info: https://doc.traefik.io/traefik/v2.11/middlewares/http/ipallowlist/#ipstrategy
+                        properties:
+                          depth:
+                            description: Depth tells Traefik to use the X-Forwarded-For
+                              header and take the IP located at the depth position
+                              (starting from the right).
+                            type: integer
+                          excludedIPs:
+                            description: ExcludedIPs configures Traefik to scan the
+                              X-Forwarded-For header and select the first IP not in
+                              the list.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      requestHeaderName:
+                        description: RequestHeaderName defines the name of the header
+                          used to group incoming requests.
+                        type: string
+                      requestHost:
+                        description: RequestHost defines whether to consider the request
+                          Host as the source.
+                        type: boolean
+                    type: object
+                  sourceRange:
+                    description: SourceRange defines white listed URLs for bypassing
+                      rate limiting when SourceCriterion is using the IPStrategy.
+                    items:
+                      type: string
+                    type: array
+                  tokenBurst:
+                    description: |-
+                      Burst is the maximum number of requests allowed to arrive in the same arbitrarily small period of time.
+                      It defaults to 1000.
+                    format: int64
+                    type: integer
+                  tokenHeader:
+                    description: TokenHeader is the header name to pull the API Token
+                      from.
+                    type: string
+                  tokenPeriod:
+                    description: |-
+                      Period is the length of time in seconds.
+                      It defaults to 600.
+                    format: int64
+                    type: integer
+                  tokenQueryParam:
+                    description: TokenQueryParam is the query param name to pull the
+                      API Token from.
+                    type: string
+                  tokenRate:
+                    description: |-
+                      Rate is the number of tokens allowed to be taken in a give period.
+                      It defaults to 1000.
+                    format: int64
+                    type: integer
+                  tokenWeight:
+                    description: |-
+                      Weight is the number of tokens to take per request.
+                      It defaults to 1.
+                    format: int64
+                    type: integer
+                  weight:
+                    description: |-
+                      Weight is the number of tokens to take per request.
+                      It defaults to 1.
+                    format: int64
+                    type: integer
                 type: object
               passTLSClientCert:
                 description: |-
