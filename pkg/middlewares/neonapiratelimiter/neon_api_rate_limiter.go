@@ -506,7 +506,7 @@ func initRedisStorageConfig(
 		reader = keyset.NewJSONReader(fileReader)
 	} else if appliedKeyset != "" {
 		// Keyset definition references the raw data.
-		reader = keyset.NewBinaryReader(bytes.NewReader([]byte(appliedKeyset)))
+		reader = keyset.NewJSONReader(bytes.NewBufferString(appliedKeyset))
 	} else {
 		logger.Info("creating new tink keyset handle")
 		// Create new DeterministicAEAD keyset if not found.
