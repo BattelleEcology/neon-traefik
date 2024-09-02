@@ -219,6 +219,34 @@ func (s serviceRepresentation) status() string {
 	return s.Status
 }
 
+func (s serviceRollupRepresentation) name() string {
+	return s.Name
+}
+
+func (s serviceRollupRepresentation) resourceType() string {
+	return s.Type
+}
+
+func (s serviceRollupRepresentation) serversCount() int {
+	// TODO: maybe disable that data point altogether,
+	// if we can't/won't compute a fully correct (recursive) result.
+	// Or "redefine" it as only the top-level count?
+	// Note: The current algo is equivalent to the webui one.
+	if s.LoadBalancer == nil {
+		return 0
+	}
+
+	return len(s.LoadBalancer.Servers)
+}
+
+func (s serviceRollupRepresentation) provider() string {
+	return s.Provider
+}
+
+func (s serviceRollupRepresentation) status() string {
+	return s.Status
+}
+
 func (s tcpServiceRepresentation) name() string {
 	return s.Name
 }

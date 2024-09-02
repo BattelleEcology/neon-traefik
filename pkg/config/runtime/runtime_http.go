@@ -197,3 +197,45 @@ func (s *ServiceInfo) GetAllStatus() map[string]string {
 	}
 	return allStatus
 }
+
+// GetStatusRollup returns the aggregate state of the service and all server status.
+// It is the responsibility of the caller to check that s is not nil
+func (s *ServiceInfo) GetStatusRollup() string {
+	serverStatus := s.GetAllStatusRollup()
+	if s.Status == StatusEnabled && serverStatus == StatusEnabled {
+		return StatusEnabled
+	} else if s.Status == StatusDisabled || serverStatus == StatusDisabled {
+		return StatusDisabled
+	}
+	return StatusWarning
+}
+
+// GetAllStatusRollup returns the aggregate state of all server status.
+// It is the responsibility of the caller to check that s is not nil
+func (s *ServiceInfo) GetAllStatusRollup() string {
+	allStatus := s.GetAllStatus()
+	if allStatus == nil {
+		return StatusEnabled
+	}
+	s.serverStatusMu.RLock()
+	defer s.serverStatusMu.RUnlock()
+
+	allUp := true
+	allDown := true
+	for _, v := range allStatus {
+		if v != StatusUp {
+			allUp = false
+		} else {
+			allDown = false
+		}
+	}
+
+	state := StatusEnabled
+	if allDown {
+		state = StatusDisabled
+	} else if !allUp {
+		state = StatusWarning
+	}
+
+	return state
+}

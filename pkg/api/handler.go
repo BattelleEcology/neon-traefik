@@ -30,6 +30,7 @@ func writeError(rw http.ResponseWriter, msg string, code int) {
 
 type serviceInfoRepresentation struct {
 	*runtime.ServiceInfo
+	StatusRollup string            `json:"status,omitempty"`
 	ServerStatus map[string]string `json:"serverStatus,omitempty"`
 }
 
@@ -85,15 +86,15 @@ func (h Handler) createRouter() *mux.Router {
 	router.Methods(http.MethodGet).Path("/api/rawdata").HandlerFunc(h.getRuntimeConfiguration)
 
 	// Experimental endpoint
-	router.Methods(http.MethodGet).Path("/api/overview").HandlerFunc(h.getOverview)
+	router.Methods(http.MethodGet).Path("/api/overview").HandlerFunc(h.getOverviewRollup)
 
 	router.Methods(http.MethodGet).Path("/api/entrypoints").HandlerFunc(h.getEntryPoints)
 	router.Methods(http.MethodGet).Path("/api/entrypoints/{entryPointID}").HandlerFunc(h.getEntryPoint)
 
 	router.Methods(http.MethodGet).Path("/api/http/routers").HandlerFunc(h.getRouters)
 	router.Methods(http.MethodGet).Path("/api/http/routers/{routerID}").HandlerFunc(h.getRouter)
-	router.Methods(http.MethodGet).Path("/api/http/services").HandlerFunc(h.getServices)
-	router.Methods(http.MethodGet).Path("/api/http/services/{serviceID}").HandlerFunc(h.getService)
+	router.Methods(http.MethodGet).Path("/api/http/services").HandlerFunc(h.getServicesRollup)
+	router.Methods(http.MethodGet).Path("/api/http/services/{serviceID}").HandlerFunc(h.getServiceRollup)
 	router.Methods(http.MethodGet).Path("/api/http/middlewares").HandlerFunc(h.getMiddlewares)
 	router.Methods(http.MethodGet).Path("/api/http/middlewares/{middlewareID}").HandlerFunc(h.getMiddleware)
 
@@ -119,6 +120,7 @@ func (h Handler) getRuntimeConfiguration(rw http.ResponseWriter, request *http.R
 	for k, v := range h.runtimeConfiguration.Services {
 		siRepr[k] = &serviceInfoRepresentation{
 			ServiceInfo:  v,
+			StatusRollup: v.GetStatusRollup(),
 			ServerStatus: v.GetAllStatus(),
 		}
 	}

@@ -66,6 +66,35 @@ func (h Handler) getOverview(rw http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func (h Handler) getOverviewRollup(rw http.ResponseWriter, request *http.Request) {
+	result := overview{
+		HTTP: schemeOverview{
+			Routers:     getHTTPRouterSection(h.runtimeConfiguration.Routers),
+			Services:    getHTTPServiceRollupSection(h.runtimeConfiguration.Services),
+			Middlewares: getHTTPMiddlewareSection(h.runtimeConfiguration.Middlewares),
+		},
+		TCP: schemeOverview{
+			Routers:     getTCPRouterSection(h.runtimeConfiguration.TCPRouters),
+			Services:    getTCPServiceSection(h.runtimeConfiguration.TCPServices),
+			Middlewares: getTCPMiddlewareSection(h.runtimeConfiguration.TCPMiddlewares),
+		},
+		UDP: schemeOverview{
+			Routers:  getUDPRouterSection(h.runtimeConfiguration.UDPRouters),
+			Services: getUDPServiceSection(h.runtimeConfiguration.UDPServices),
+		},
+		Features:  getFeatures(h.staticConfig),
+		Providers: getProviders(h.staticConfig),
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+
+	err := json.NewEncoder(rw).Encode(result)
+	if err != nil {
+		log.Ctx(request.Context()).Error().Err(err).Send()
+		writeError(rw, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func getHTTPRouterSection(routers map[string]*runtime.RouterInfo) *section {
 	var countErrors int
 	var countWarnings int
@@ -94,6 +123,33 @@ func getHTTPServiceSection(services map[string]*runtime.ServiceInfo) *section {
 			countErrors++
 		case runtime.StatusWarning:
 			countWarnings++
+		}
+	}
+
+	return &section{
+		Total:    len(services),
+		Warnings: countWarnings,
+		Errors:   countErrors,
+	}
+}
+
+func getHTTPServiceRollupSection(services map[string]*runtime.ServiceInfo) *section {
+	var countErrors int
+	var countWarnings int
+	for _, svc := range services {
+		switch svc.Status {
+		case runtime.StatusDisabled:
+			countErrors++
+		case runtime.StatusWarning:
+			countWarnings++
+		default:
+			// Rollup service status from load balancer server health checks.
+			switch svc.GetAllStatusRollup() {
+			case runtime.StatusDisabled:
+				countErrors++
+			case runtime.StatusWarning:
+				countWarnings++
+			}
 		}
 	}
 
