@@ -158,6 +158,11 @@ func (in *Compress) DeepCopyInto(out *Compress) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.DefaultEncodingPriority != nil {
+		in, out := &in.DefaultEncodingPriority, &out.DefaultEncodingPriority
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

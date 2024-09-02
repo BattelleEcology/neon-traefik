@@ -22,10 +22,17 @@ type Encoding struct {
 	Weight *float64
 }
 
-func getCompressionType(acceptEncoding []string, defaultType string) string {
+func getCompressionType(acceptEncoding []string, defaultType string, defaultEncodingPriority []string) string {
 	if defaultType == "" {
 		// Keeps the pre-existing default inside Traefik.
 		defaultType = brotliName
+	}
+	var appliedDefaultEncodingPriority []string
+	if len(defaultEncodingPriority) > 0 {
+		appliedDefaultEncodingPriority = defaultEncodingPriority
+	} else {
+		// Keeps the pre-existing default for upstream traefik.
+		appliedDefaultEncodingPriority = []string{zstdName, brotliName, gzipName}
 	}
 
 	encodings, hasWeight := parseAcceptEncoding(acceptEncoding)
@@ -52,7 +59,7 @@ func getCompressionType(acceptEncoding []string, defaultType string) string {
 		return encoding.Type
 	}
 
-	for _, dt := range []string{zstdName, brotliName, gzipName} {
+	for _, dt := range appliedDefaultEncodingPriority {
 		if slices.ContainsFunc(encodings, func(e Encoding) bool { return e.Type == dt }) {
 			return dt
 		}

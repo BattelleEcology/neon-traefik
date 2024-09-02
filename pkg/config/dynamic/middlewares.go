@@ -179,6 +179,9 @@ type Compress struct {
 	MinResponseBodyBytes int `json:"minResponseBodyBytes,omitempty" toml:"minResponseBodyBytes,omitempty" yaml:"minResponseBodyBytes,omitempty" export:"true"`
 	// DefaultEncoding specifies the default encoding if the `Accept-Encoding` header is not in the request or contains a wildcard (`*`).
 	DefaultEncoding string `json:"defaultEncoding,omitempty" toml:"defaultEncoding,omitempty" yaml:"defaultEncoding,omitempty" export:"true"`
+	// DefaultEncodingPriority defines the list of content encoding priorities when multiple valid
+	// encodings are identified in the Accept-Encoding header
+	DefaultEncodingPriority []string `json:"defaultEncodingPriority,omitempty" toml:"defaultEncodingPriority,omitempty" yaml:"defaultEncodingPriority,omitempty" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true

@@ -297,6 +297,66 @@
                 <boolean-state :value="!!middleware.compress" />
               </div>
             </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Min Response Body Bytes</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).minResponseBodyBytes }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Default Encoding</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).defaultEncoding }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [compress] - compress -->
+          <q-card-section v-if="exData(middleware).excludedContentTypes">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Excluded Content Types Request</div>
+                <q-chip
+                  v-for="(range, key) in exData(middleware).excludedContentTypes" :key="key"
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ range }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [compress] - compress -->
+          <q-card-section v-if="exData(middleware).includedContentTypes">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Included Content Types Response</div>
+                <q-chip
+                  v-for="(range, key) in exData(middleware).includedContentTypes" :key="key"
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ range }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [compress] - compress -->
+          <q-card-section v-if="exData(middleware).defaultEncodingPriority">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Default Encoding Priority</div>
+                <q-chip
+                  v-for="(range, key) in exData(middleware).defaultEncodingPriority" :key="key"
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ range }}
+                </q-chip>
+              </div>
+            </div>
           </q-card-section>
 
           <!-- EXTRA FIELDS FROM MIDDLEWARES - [errors] - service -->

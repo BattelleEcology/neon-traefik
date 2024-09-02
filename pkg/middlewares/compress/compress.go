@@ -29,6 +29,8 @@ type compress struct {
 	minSize         int
 	defaultEncoding string
 
+	defaultEncodingPriority []string
+
 	brotliHandler http.Handler
 	gzipHandler   http.Handler
 	zstdHandler   http.Handler
@@ -74,6 +76,8 @@ func New(ctx context.Context, next http.Handler, conf dynamic.Compress, name str
 		includes:        includes,
 		minSize:         minSize,
 		defaultEncoding: conf.DefaultEncoding,
+
+		defaultEncodingPriority: conf.DefaultEncodingPriority,
 	}
 
 	var err error
@@ -131,7 +135,7 @@ func (c *compress) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	c.chooseHandler(getCompressionType(acceptEncoding, c.defaultEncoding), rw, req)
+	c.chooseHandler(getCompressionType(acceptEncoding, c.defaultEncoding, c.defaultEncodingPriority), rw, req)
 }
 
 func (c *compress) chooseHandler(typ string, rw http.ResponseWriter, req *http.Request) {

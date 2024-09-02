@@ -144,6 +144,7 @@
         includedContentTypes = ["foobar", "foobar"]
         minResponseBodyBytes = 42
         defaultEncoding = "foobar"
+        defaultEncodingPriority = ["foobar", "foobar"]
     [http.middlewares.Middleware07]
       [http.middlewares.Middleware07.contentType]
         autoDetect = true

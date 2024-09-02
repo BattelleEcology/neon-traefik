@@ -80,7 +80,7 @@ func Test_getCompressionType(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
-			encodingType := getCompressionType(test.values, test.defaultType)
+			encodingType := getCompressionType(test.values, test.defaultType, []string{})
 
 			assert.Equal(t, test.expected, encodingType)
 		})

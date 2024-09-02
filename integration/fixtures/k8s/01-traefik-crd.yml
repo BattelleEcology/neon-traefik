@@ -912,6 +912,13 @@ spec:
                       the `Accept-Encoding` header is not in the request or contains
                       a wildcard (`*`).
                     type: string
+                  defaultEncodingPriority:
+                    description: |-
+                      DefaultEncodingPriority defines the list of content encoding priorities when multiple valid
+                      encodings are identified in the Accept-Encoding header
+                    items:
+                      type: string
+                    type: array
                   excludedContentTypes:
                     description: |-
                       ExcludedContentTypes defines the list of content types to compare the Content-Type header of the incoming requests and responses before compressing.
