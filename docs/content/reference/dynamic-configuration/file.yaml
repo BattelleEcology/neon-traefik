@@ -308,6 +308,63 @@ http:
           requestHeaderName: foobar
           requestHost: true
     Middleware16:
+      neonAPIRateLimit:
+        burst: 42
+        rate: 42
+        period: 42
+        weight: 42
+        applyTokenRateLimit: true
+        tokenBurst: 42
+        tokenRate: 42
+        tokenPeriod: 42
+        tokenWeight: 42
+        tokenHeader: foobar
+        tokenQueryParam: foobar
+        sourceCriterion:
+          ipStrategy:
+            depth: 42
+            excludedIPs:
+              - foobar
+              - foobar
+            ipv6Subnet: 42
+          requestHeaderName: foobar
+          requestHost: true
+        sourceRange:
+          - foobar
+          - foobar
+        requestMethodsPassthrough:
+          - foobar
+          - foobar
+        scopes:
+          claimName: foobar
+          prefixFilter:
+            - foobar
+            - foobar
+          serviceScopeName: foobar
+          rateScopeUnlimitedName: foobar
+          rateScopeLimitedName: foobar
+        redis:
+          host: foobar
+          port: 42
+          database: 42
+          keyPrefix: foobar
+          username: foobar
+          password: foobar
+          useTls: true
+          tls:
+            verify: true
+            useMTls: true
+            ca: foobar
+            cert: foobar
+            key: foobar
+          storage:
+            encrypt: true
+            keyset: foobar
+        authService:
+          serviceUrl: foobar
+          tokenVerifyEndpoint: foobar
+          tokenHeader: foobar
+    Middleware17:
       passTLSClientCert:
         pem: true
         info:
@@ -332,7 +389,7 @@ http:
             commonName: true
             serialNumber: true
             domainComponent: true
-    Middleware17:
+    Middleware18:
       plugin:
         PluginConf0:
           name0: foobar
@@ -340,7 +397,7 @@ http:
         PluginConf1:
           name0: foobar
           name1: foobar
-    Middleware18:
+    Middleware19:
       rateLimit:
         average: 42
         period: 42s
@@ -354,34 +411,34 @@ http:
             ipv6Subnet: 42
           requestHeaderName: foobar
           requestHost: true
-    Middleware19:
+    Middleware20:
       redirectRegex:
         regex: foobar
         replacement: foobar
         permanent: true
-    Middleware20:
+    Middleware21:
       redirectScheme:
         scheme: foobar
         port: foobar
         permanent: true
-    Middleware21:
+    Middleware22:
       replacePath:
         path: foobar
-    Middleware22:
+    Middleware23:
       replacePathRegex:
         regex: foobar
         replacement: foobar
-    Middleware23:
+    Middleware24:
       retry:
         attempts: 42
         initialInterval: 42s
-    Middleware24:
+    Middleware25:
       stripPrefix:
         prefixes:
           - foobar
           - foobar
         forceSlash: true
-    Middleware25:
+    Middleware26:
       stripPrefixRegex:
         regex:
           - foobar
