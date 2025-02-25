@@ -960,6 +960,21 @@
             </div>
           </q-card-section>
 
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [ipWhiteList & neonAPIRateLimit] - sourceRange -->
+          <q-card-section v-if="exData(middleware).sourceRange">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Source Range</div>
+                <q-chip
+                  v-for="(range, key) in exData(middleware).sourceRange" :key="key"
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ range }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+
           <!-- EXTRA FIELDS FROM MIDDLEWARES - [ipWhiteList] - sourceRange -->
           <q-card-section v-if="middleware.ipWhiteList">
             <div class="row items-start no-wrap">
@@ -1066,6 +1081,324 @@
             </div>
           </q-card-section>
 
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [neonAPIRateLimit] - tokenHeader && tokenQueryParam && requestMethodsPassthrough -->
+          <q-card-section v-if="middleware.neonAPIRateLimit">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">API Token</div>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Header</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).tokenHeader }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Query Param</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).tokenQueryParam }}
+                </q-chip>
+              </div>
+            </div>
+            <div class="row items-start no-wrap" v-if="exData(middleware).requestMethodsPassthrough">
+              <div class="col">
+                <div class="text-subtitle2">Request Methods Passthrough</div>
+                <q-chip
+                  v-for="(method, key) in exData(middleware).requestMethodsPassthrough" :key="key"
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ method }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [neonAPIRateLimit] - burst && rate && period && weight -->
+          <q-card-section v-if="middleware.neonAPIRateLimit">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Default Public IP Source Rate</div>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Burst</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).burst }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Rate</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).rate }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Period</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).period }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Weight</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).weight }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [neonAPIRateLimit] - applyTokenRateLimit && tokenBurst && tokenRate && tokenPeriod && tokenWeight -->
+          <q-card-section v-if="middleware.neonAPIRateLimit">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">API Token Public Source Rate</div>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Apply Token Based Rate Limit</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).applyTokenRateLimit }}
+                </q-chip>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Burst</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).tokenBurst }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Rate</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).tokenRate }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Period</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).tokenPeriod }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Weight</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).tokenWeight }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [neonAPIRateLimit] - scopes -->
+          <q-card-section v-if="middleware.neonAPIRateLimit && exData(middleware).scopes">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">API Token Scopes Configuration</div>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Scopes Claim Name</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).scopes.claimName }}
+                </q-chip>
+              </div>
+            </div>
+            <div class="row items-start no-wrap" v-if="exData(middleware).scopes.prefixFilter">
+              <div class="col">
+                <div class="text-subtitle2">Scopes Prefix Filter</div>
+                <q-chip
+                  v-for="(prefix, key) in exData(middleware).scopes.prefixFilter" :key="key"
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ prefix }}
+                </q-chip>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Service Level Scope Name</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).scopes.serviceScopeName }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Rate Unlimited Level Scope Name</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).scopes.rateScopeUnlimitedName }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Rate Limited Level Scope Name</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).scopes.rateScopeLimitedName }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [neonAPIRateLimit] - redis -->
+          <q-card-section v-if="middleware.neonAPIRateLimit && exData(middleware).redis">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Redis Configuration</div>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Redis Host</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).redis.host }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Redis Port</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).redis.port }}
+                </q-chip>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Redis Database</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).redis.database }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Redis Key Prefix</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).redis.keyPrefix }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [neonAPIRateLimit] - redis.tls -->
+          <q-card-section v-if="middleware.neonAPIRateLimit && exData(middleware).redis && exData(middleware).redis.tls">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Redis TLS Configuration</div>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Active TLS</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).redis.useTls }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Active mTLS</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).redis.tls.useMTls }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Verify</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).redis.tls.verify }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [neonAPIRateLimit] - redis.storage -->
+          <q-card-section v-if="middleware.neonAPIRateLimit && exData(middleware).redis && exData(middleware).redis.storage">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Redis Storage Configuration</div>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Encrypt</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).redis.storage.encrypt }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [neonAPIRateLimit] - authService -->
+          <q-card-section v-if="middleware.neonAPIRateLimit && exData(middleware).authService">
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Auth Service</div>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Host</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).authService.serviceUrl }}
+                </q-chip>
+              </div>
+            </div>
+            <div class="row items-start no-wrap">
+              <div class="col">
+                <div class="text-subtitle2">Verify Token Endpoint</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).authService.tokenVerifyEndpoint }}
+                </q-chip>
+              </div>
+            </div>
+          </q-card-section>
+
           <!-- EXTRA FIELDS FROM MIDDLEWARES - [inFlightReq] - amount -->
           <q-card-section v-if="exData(middleware).amount">
             <div class="row items-start no-wrap">
@@ -1083,7 +1416,7 @@
             </div>
           </q-card-section>
 
-          <!-- EXTRA FIELDS FROM MIDDLEWARES - [inFlightReq & rateLimit] - ipStrategy -->
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [inFlightReq & rateLimit & neonAPIRateLimit] - ipStrategy -->
           <q-card-section v-if="exData(middleware).sourceCriterion && exData(middleware).sourceCriterion.ipStrategy">
             <div class="row items-start">
               <div class="col-12">
@@ -1131,7 +1464,7 @@
               </div>
             </div>
           </q-card-section>
-          <!-- EXTRA FIELDS FROM MIDDLEWARES - [inFlightReq & rateLimit] - requestHeaderName, requestHost -->
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [inFlightReq & rateLimit & neonAPIRateLimit] - requestHeaderName, requestHost -->
           <q-card-section v-if="exData(middleware) && exData(middleware).sourceCriterion">
             <div class="row items-start no-wrap">
               <div
