@@ -31,6 +31,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/middlewares/ingressnginx/upstreamvhost"
 	"github.com/traefik/traefik/v3/pkg/middlewares/ipallowlist"
 	"github.com/traefik/traefik/v3/pkg/middlewares/ipwhitelist"
+	"github.com/traefik/traefik/v3/pkg/middlewares/neonapiratelimiter"
 	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
 	"github.com/traefik/traefik/v3/pkg/middlewares/passtlsclientcert"
 	"github.com/traefik/traefik/v3/pkg/middlewares/ratelimiter"
@@ -299,6 +300,16 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 		}
 		middleware = func(next http.Handler) (http.Handler, error) {
 			return ratelimiter.New(ctx, next, *config.RateLimit, middlewareName)
+		}
+	}
+
+	// NeonAPIRateLimit
+	if config.NeonAPIRateLimit != nil {
+		if middleware != nil {
+			return nil, badConf
+		}
+		middleware = func(next http.Handler) (http.Handler, error) {
+			return neonapiratelimiter.New(ctx, next, *config.NeonAPIRateLimit, middlewareName)
 		}
 	}
 
