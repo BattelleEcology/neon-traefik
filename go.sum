@@ -1977,6 +1977,8 @@ github.com/timtadh/data-structures v0.5.3 h1:F2tEjoG9qWIyUjbvXVgJqEOGJPMIiYn7U5W
 github.com/timtadh/data-structures v0.5.3/go.mod h1:9R4XODhJ8JdWFEI8P/HJKqxuJctfBQw6fDibMQny2oU=
 github.com/timtadh/lexmachine v0.2.2 h1:g55RnjdYazm5wnKv59pwFcBJHOyvTPfDEoz21s4PHmY=
 github.com/timtadh/lexmachine v0.2.2/go.mod h1:GBJvD5OAfRn/gnp92zb9KTgHLB7akKyxmVivoYCcjQI=
+github.com/tink-crypto/tink-go/v2 v2.2.0 h1:L2Da0F2Udh2agtKztdr69mV/KpnY3/lGTkMgLTVIXlA=
+github.com/tink-crypto/tink-go/v2 v2.2.0/go.mod h1:JJ6PomeNPF3cJpfWC0lgyTES6zpJILkAX0cJNwlS3xU=
 github.com/tjfoc/gmsm v1.3.2/go.mod h1:HaUcFuY0auTiaHB9MHFGCPx5IaLhTUd2atbCFBQXn9w=
 github.com/tjfoc/gmsm v1.4.1 h1:aMe1GlZb+0bLjn+cKTPEvvn9oUEBlJitaZiiBwsbgho=
 github.com/tjfoc/gmsm v1.4.1/go.mod h1:j4INPkHWMrhJb38G+J6W4Tw0AbuN8Thu3PbdVYhVcTE=
