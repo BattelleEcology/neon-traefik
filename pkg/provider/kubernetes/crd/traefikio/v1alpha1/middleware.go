@@ -39,6 +39,7 @@ type MiddlewareSpec struct {
 	EncodedCharacters *dynamic.EncodedCharacters `json:"encodedCharacters,omitempty"`
 	Errors            *ErrorPage                 `json:"errors,omitempty"`
 	RateLimit         *RateLimit                 `json:"rateLimit,omitempty"`
+	NeonAPIRateLimit  *NeonAPIRateLimit          `json:"neonAPIRateLimit,omitempty"`
 	RedirectRegex     *dynamic.RedirectRegex     `json:"redirectRegex,omitempty"`
 	RedirectScheme    *dynamic.RedirectScheme    `json:"redirectScheme,omitempty"`
 	BasicAuth         *BasicAuth                 `json:"basicAuth,omitempty"`
@@ -375,6 +376,165 @@ type Retry struct {
 	DisableRetryOnNetworkError bool `json:"disableRetryOnNetworkError,omitempty"`
 	// RetryNonIdempotentMethod activates the retry for non-idempotent methods (POST, LOCK, PATCH)
 	RetryNonIdempotentMethod bool `json:"retryNonIdempotentMethod,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitKeyRef holds the secret configuration for NeonAPIRateLimit.
+type NeonAPIRateLimitKeyRef struct {
+	// The name of the secret.
+	Name string `json:"name,omitempty"`
+	// The name of the key in the secret to pull from.
+	Key string `json:"key,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitRedisTls holds the Redis TLS configuration for NeonAPIRateLimit.
+type NeonAPIRateLimitRedisTls struct {
+	// -------------------------------------------------------------------------
+	// Copied from pkg/config/dynamic/middlewares.go for code gen purposes
+	// -------------------------------------------------------------------------
+
+	// Optionally apply verification for the TLS connection to Redis.
+	Verify bool `json:"verify,omitempty" toml:"verify,omitempty" yaml:"verify,omitempty"`
+	// Optionally apply mTLS for the TLS connection to Redis.
+	UseMTls bool `json:"useMTls,omitempty" toml:"useMTls,omitempty" yaml:"useMTls,omitempty"`
+	// The certificate authority certificate.
+	Ca string `json:"-" toml:"ca,omitempty" yaml:"ca,omitempty"`
+	// Public certificate used for the secure connection to Redis.
+	Cert string `json:"-" toml:"cert,omitempty" yaml:"cert,omitempty"`
+	// Private key used for the secure connection to Redis.
+	Key string `json:"-" toml:"key,omitempty" yaml:"key,omitempty"`
+
+	// -------------------------------------------------------------------------
+	// Customized for CRD
+	// -------------------------------------------------------------------------
+
+	// The certificate authority certificate secret key ref.
+	CaSecretKeyRef *NeonAPIRateLimitKeyRef `json:"caSecretKeyRef,omitempty"`
+	// Public certificate secret key ref used for the secure connection to Redis.
+	CertSecretKeyRef *NeonAPIRateLimitKeyRef `json:"certSecretKeyRef,omitempty"`
+	// Private key secret key ref used for the secure connection to Redis.
+	KeySecretKeyRef *NeonAPIRateLimitKeyRef `json:"keySecretKeyRef,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitRedisStorage holds the Redis storage configuration for the NeonAPIRateLimit.
+type NeonAPIRateLimitRedisStorage struct {
+	// -------------------------------------------------------------------------
+	// Copied from pkg/config/dynamic/middlewares.go for code gen purposes
+	// -------------------------------------------------------------------------
+
+	// Optionally encrypt data stored in Redis.
+	Encrypt bool `json:"encrypt,omitempty" toml:"encrypt,omitempty" yaml:"encrypt,omitempty"`
+	// Specify the full path to the Tink keyset file. Required when encrypt is true.
+	// If the file does not exist, it will be generated.
+	Keyset string `json:"-" toml:"keyset,omitempty" yaml:"keyset,omitempty"`
+
+	// -------------------------------------------------------------------------
+	// Customized for CRD
+	// -------------------------------------------------------------------------
+
+	// The keyset secret ref for the Tink keyset. Required when encrypt is true.
+	// If the file/data does not exist, it will be generated.
+	KeysetSecretKeyRef *NeonAPIRateLimitKeyRef `json:"keysetSecretKeyRef,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimitRedis holds the rate limiting configuration for a given router.
+type NeonAPIRateLimitRedis struct {
+	// -------------------------------------------------------------------------
+	// Copied from pkg/config/dynamic/middlewares.go for code gen purposes
+	// -------------------------------------------------------------------------
+
+	// The Redis host to connect to.
+	Host string `json:"host,omitempty" toml:"host,omitempty" yaml:"host,omitempty"`
+	// The Redis port to connect to.
+	Port int `json:"port,omitempty" toml:"port,omitempty" yaml:"port,omitempty"`
+	// The Redis database to connect to.
+	Database int `json:"database,omitempty" toml:"database,omitempty" yaml:"database,omitempty"`
+	// KeyPrefix is the prefix to assign to rate limiting state in Redis.
+	KeyPrefix string `json:"keyPrefix,omitempty" toml:"keyPrefix,omitempty" yaml:"keyPrefix,omitempty"`
+	// The name of the redis user to connect with.
+	Username string `json:"-" toml:"username,omitempty" yaml:"username,omitempty"`
+	// The password of the redis user to connect with.
+	Password string `json:"-" toml:"password,omitempty" yaml:"password,omitempty"`
+	// Optionally apply the TLS configuration when connecting with Redis.
+	UseTls bool `json:"useTls,omitempty" toml:"useTls,omitempty" yaml:"useTls,omitempty"`
+	// TLS configuration options.
+	Tls *NeonAPIRateLimitRedisTls `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty"`
+	// Storage configuration options.
+	Storage *NeonAPIRateLimitRedisStorage `json:"storage,omitempty" toml:"storage,omitempty" yaml:"storage,omitempty"`
+
+	// -------------------------------------------------------------------------
+	// Customized for CRD
+	// -------------------------------------------------------------------------
+
+	// The secret key ref of the name of the redis user to connect with.
+	UsernameSecretKeyRef *NeonAPIRateLimitKeyRef `json:"usernameSecretKeyRef,omitempty"`
+	// The secret key ref of the password of the redis user to connect with.
+	PasswordSecretKeyRef *NeonAPIRateLimitKeyRef `json:"passwordSecretKeyRef,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// NeonAPIRateLimit holds the rate limiting configuration for a given router.
+type NeonAPIRateLimit struct {
+	// -------------------------------------------------------------------------
+	// Copied from pkg/config/dynamic/middlewares.go for code gen purposes
+	// -------------------------------------------------------------------------
+
+	// Burst is the maximum number of requests allowed to arrive in the same arbitrarily small period of time.
+	// It defaults to 1000.
+	Burst int64 `json:"burst,omitempty" toml:"burst,omitempty" yaml:"burst,omitempty"`
+	// Rate is the number of tokens allowed to be taken in a give period.
+	// It defaults to 1000.
+	Rate int64 `json:"rate,omitempty" toml:"rate,omitempty" yaml:"rate,omitempty"`
+	// Period is the length of time in seconds.
+	// It defaults to 600.
+	Period int64 `json:"period,omitempty" toml:"period,omitempty" yaml:"period,omitempty"`
+	// Weight is the number of tokens to take per request.
+	// It defaults to 1.
+	Weight int64 `json:"weight,omitempty" toml:"weight,omitempty" yaml:"weight,omitempty"`
+	// ApplyTokenRateLimit allows specifiying whether or not to apply rate limiting to valid tokens.
+	// It default to true.
+	ApplyTokenRateLimit bool `json:"applyTokenRateLimit,omitempty" toml:"applyTokenRateLimit,omitempty" yaml:"applyTokenRateLimit,omitempty"`
+	// Burst is the maximum number of requests allowed to arrive in the same arbitrarily small period of time.
+	// It defaults to 1000.
+	TokenBurst int64 `json:"tokenBurst,omitempty" toml:"tokenBurst,omitempty" yaml:"tokenBurst,omitempty"`
+	// Rate is the number of tokens allowed to be taken in a give period.
+	// It defaults to 1000.
+	TokenRate int64 `json:"tokenRate,omitempty" toml:"tokenRate,omitempty" yaml:"tokenRate,omitempty"`
+	// Period is the length of time in seconds.
+	// It defaults to 600.
+	TokenPeriod int64 `json:"tokenPeriod,omitempty" toml:"tokenPeriod,omitempty" yaml:"tokenPeriod,omitempty"`
+	// Weight is the number of tokens to take per request.
+	// It defaults to 1.
+	TokenWeight int64 `json:"tokenWeight,omitempty" toml:"tokenWeight,omitempty" yaml:"tokenWeight,omitempty"`
+	// TokenHeader is the header name to pull the API Token from.
+	TokenHeader string `json:"tokenHeader,omitempty" toml:"tokenHeader,omitempty" yaml:"tokenHeader,omitempty"`
+	// TokenQueryParam is the query param name to pull the API Token from.
+	TokenQueryParam string `json:"tokenQueryParam,omitempty" toml:"tokenQueryParam,omitempty" yaml:"tokenQueryParam,omitempty"`
+	// Source handling criteria.
+	SourceCriterion *dynamic.SourceCriterion `json:"sourceCriterion,omitempty" toml:"sourceCriterion,omitempty" yaml:"sourceCriterion,omitempty"`
+	// SourceRange defines white listed URLs for bypassing rate limiting when SourceCriterion is using the IPStrategy.
+	SourceRange []string `json:"sourceRange,omitempty" toml:"sourceRange,omitempty" yaml:"sourceRange,omitempty"`
+	// RequestMethodsPassthrough allows specifiying a set of request method types that should not be rate limited.
+	RequestMethodsPassthrough []string `json:"requestMethodsPassthrough,omitempty" toml:"requestMethodsPassthrough,omitempty" yaml:"requestMethodsPassthrough,omitempty"`
+	// Scopes configuration.
+	Scopes *dynamic.NeonAPIRateLimitScopes `json:"scopes,omitempty" toml:"scopes,omitempty" yaml:"scopes,omitempty"`
+	// Auth data service configuration.
+	AuthService *dynamic.NeonAPIRateLimitAuthService `json:"authService,omitempty" toml:"authService,omitempty" yaml:"authService,omitempty"`
+
+	// -------------------------------------------------------------------------
+	// Customized for CRD
+	// -------------------------------------------------------------------------
+
+	// Redis configuration.
+	Redis *NeonAPIRateLimitRedis `json:"redis,omitempty" toml:"redis,omitempty" yaml:"redis,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

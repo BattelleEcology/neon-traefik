@@ -102,6 +102,16 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &traefikiov1alpha1.MirroringApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("MirrorService"):
 		return &traefikiov1alpha1.MirrorServiceApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("NeonAPIRateLimit"):
+		return &traefikiov1alpha1.NeonAPIRateLimitApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("NeonAPIRateLimitKeyRef"):
+		return &traefikiov1alpha1.NeonAPIRateLimitKeyRefApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("NeonAPIRateLimitRedis"):
+		return &traefikiov1alpha1.NeonAPIRateLimitRedisApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("NeonAPIRateLimitRedisStorage"):
+		return &traefikiov1alpha1.NeonAPIRateLimitRedisStorageApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("NeonAPIRateLimitRedisTls"):
+		return &traefikiov1alpha1.NeonAPIRateLimitRedisTlsApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ObjectReference"):
 		return &traefikiov1alpha1.ObjectReferenceApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("PassiveServerHealthCheck"):
