@@ -10,6 +10,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
 	"github.com/traefik/traefik/v3/pkg/provider"
+	"github.com/traefik/traefik/v3/pkg/ready"
 	"github.com/traefik/traefik/v3/pkg/safe"
 	"github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
@@ -31,6 +32,8 @@ type ConfigurationWatcher struct {
 	configurationListeners []func(dynamic.Configuration)
 
 	configurationTransformers []func(context.Context, dynamic.Configurations) dynamic.Configurations
+
+	readiness *ready.Tracker
 
 	routinesPool *safe.Pool
 }
@@ -77,6 +80,12 @@ func (c *ConfigurationWatcher) AddTransformer(transformer func(context.Context, 
 	c.configurationTransformers = append(c.configurationTransformers, transformer)
 }
 
+// SetReadinessTracker installs the startup-readiness tracker.
+// It must be called before Start.
+func (c *ConfigurationWatcher) SetReadinessTracker(tracker *ready.Tracker) {
+	c.readiness = tracker
+}
+
 func (c *ConfigurationWatcher) startProviderAggregator() {
 	log.Info().Msgf("Starting provider aggregator %T", c.providerAggregator)
 
@@ -120,6 +129,12 @@ func (c *ConfigurationWatcher) receiveConfigurations(ctx context.Context) {
 				}
 
 				logger := log.Ctx(ctx).With().Str(logs.ProviderName, configMsg.ProviderName).Logger()
+
+				// Readiness classification MUST happen before every skip branch.
+				if c.readiness != nil {
+					emptyConfiguration := configMsg.Configuration == nil || isEmptyConfiguration(configMsg.Configuration)
+					c.readiness.InitialConfiguration(configMsg.ProviderName, !emptyConfiguration)
+				}
 
 				if configMsg.Configuration == nil {
 					logger.Debug().Msg("Skipping nil configuration")
@@ -191,6 +206,18 @@ func (c *ConfigurationWatcher) applyConfigurations(ctx context.Context) {
 
 			for _, listener := range c.configurationListeners {
 				listener(conf)
+			}
+
+			// Every synchronous configuration listener has completed.
+			// switchRouter has therefore switched the current TCP/UDP routing table.
+			if c.readiness != nil {
+				providerNames := make([]string, 0, len(newConfigs))
+
+				for providerName := range newConfigs {
+					providerNames = append(providerNames, providerName)
+				}
+
+				c.readiness.ConfigurationApplied(providerNames)
 			}
 
 			lastConfigurations = newConfigs

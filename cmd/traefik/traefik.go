@@ -41,6 +41,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/provider/traefik"
 	"github.com/traefik/traefik/v3/pkg/proxy"
 	"github.com/traefik/traefik/v3/pkg/proxy/httputil"
+	"github.com/traefik/traefik/v3/pkg/ready"
 	"github.com/traefik/traefik/v3/pkg/redactor"
 	"github.com/traefik/traefik/v3/pkg/safe"
 	"github.com/traefik/traefik/v3/pkg/server"
@@ -130,6 +131,10 @@ func runCmd(staticConfiguration *static.Configuration) error {
 
 	if staticConfiguration.Ping != nil {
 		staticConfiguration.Ping.WithContext(ctx)
+	}
+
+	if staticConfiguration.Ready != nil {
+		staticConfiguration.Ready.WithContext(ctx)
 	}
 
 	svr.Start(ctx)
@@ -312,6 +317,15 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 		return nil, fmt.Errorf("creating router factory: %w", err)
 	}
 
+	// Readiness
+
+	var readyTracker *ready.Tracker
+	if staticConfiguration.Ready != nil {
+		initialProviders := providerAggregator.InitialConfigurationProviderNames()
+		readyTracker = ready.NewTracker(initialProviders, staticConfiguration.Ready.SetReady)
+		staticConfiguration.Ready.SetTracker(readyTracker)
+	}
+
 	// Watcher
 
 	watcher := server.NewConfigurationWatcher(
@@ -321,6 +335,12 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 		"internal",
 		staticConfiguration.Core != nil && staticConfiguration.Core.StrictTLSOptions,
 	)
+
+	// Readiness tracker
+
+	if readyTracker != nil {
+		watcher.SetReadinessTracker(readyTracker)
+	}
 
 	// TLS
 	watcher.AddListener(func(conf dynamic.Configuration) {

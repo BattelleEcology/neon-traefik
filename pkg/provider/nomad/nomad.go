@@ -175,6 +175,11 @@ func (p *Provider) Init() error {
 	return nil
 }
 
+// Provider name utilized for readiness.
+func (p *Provider) InitialConfigurationProviderName() string {
+	return p.name
+}
+
 // Provide allows the Nomad Traefik Provider to provide configurations to traefik
 // using the given configuration channel.
 func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {

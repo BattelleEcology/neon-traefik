@@ -125,3 +125,55 @@ func (m *mockNamespacedProvider) Provide(_ chan<- dynamic.Message, _ *safe.Pool)
 func (m *mockNamespacedProvider) Init() error {
 	return nil
 }
+
+type initialProviderMock struct {
+	name string
+}
+
+func (p *initialProviderMock) Init() error {
+	return nil
+}
+
+func (p *initialProviderMock) Provide(chan<- dynamic.Message, *safe.Pool) error {
+	return nil
+}
+
+func (p *initialProviderMock) InitialConfigurationProviderName() string {
+	return p.name
+}
+
+type reactiveProviderMock struct{}
+
+func (p *reactiveProviderMock) Init() error {
+	return nil
+}
+
+func (p *reactiveProviderMock) Provide(chan<- dynamic.Message, *safe.Pool) error {
+	return nil
+}
+
+func TestInitialConfigurationProviderNames(t *testing.T) {
+	agg := &ProviderAggregator{
+		fileProvider: &initialProviderMock{
+			name: "file",
+		},
+		providers: []provider.Provider{
+			&initialProviderMock{
+				name: "kubernetes",
+			},
+			&reactiveProviderMock{},
+		},
+		internalProvider: &initialProviderMock{
+			name: "internal",
+		},
+	}
+	assert.Equal(
+		t,
+		[]string{
+			"file",
+			"internal",
+			"kubernetes",
+		},
+		agg.InitialConfigurationProviderNames(),
+	)
+}

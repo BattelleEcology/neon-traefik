@@ -107,6 +107,11 @@ func (p *Provider) Init() error {
 	return nil
 }
 
+// Provider name utilized for readiness.
+func (p *Provider) InitialConfigurationProviderName() string {
+	return ProviderName
+}
+
 // Provide configuration to traefik from ECS.
 func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
 	pool.GoCtx(func(routineCtx context.Context) {

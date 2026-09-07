@@ -23,3 +23,20 @@ type NamespacedProvider interface {
 	// Namespace returns the specific namespace this provider instance is configured for.
 	Namespace() string
 }
+
+// InitialConfigurationProvider is implemented by providers that have a
+// deterministic initial-discovery lifecycle.
+//
+// Implementations guarantee that successful initial discovery emits at least
+// one dynamic.Message, including an empty initial state.
+//
+// InitialConfigurationProviderName MUST exactly match the value emitted in
+// dynamic.Message.ProviderName.
+//
+// Reactive providers whose first message depends on an external stimulus must
+// not implement this interface.
+type InitialConfigurationProvider interface {
+	Provider
+
+	InitialConfigurationProviderName() string
+}

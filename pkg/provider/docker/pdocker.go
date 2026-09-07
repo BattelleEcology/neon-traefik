@@ -49,6 +49,11 @@ func (p *Provider) Init() error {
 	return nil
 }
 
+// Provider name utilized for readiness.
+func (p *Provider) InitialConfigurationProviderName() string {
+	return DockerName
+}
+
 // Provide allows the docker provider to provide configurations to traefik using the given configuration channel.
 func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
 	pool.GoCtx(func(routineCtx context.Context) {

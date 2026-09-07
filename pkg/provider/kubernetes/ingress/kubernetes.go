@@ -78,6 +78,11 @@ func (p *Provider) Init() error {
 // ProviderName is the Kubernetes Ingress provider name.
 const ProviderName = "kubernetes"
 
+// Provider name utilized for readiness.
+func (p *Provider) InitialConfigurationProviderName() string {
+	return ProviderName
+}
+
 // Provide allows the k8s provider to provide configurations to traefik
 // using the given configuration channel.
 func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
@@ -117,31 +122,41 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 				eventsChan = throttledChan
 			}
 
+			sendConfiguration := func(event any) {
+				// Note that event is the *first* event that came in during this
+				// throttling interval -- if we're hitting our throttle, we may have
+				// dropped events. This is fine, because we don't treat different
+				// event types differently. But if we do in the future, we'll need to
+				// track more information about the dropped events.
+				conf := p.loadConfigurationFromIngresses(ctxLog, k8sClient)
+
+				confHash, err := hashstructure.Hash(conf, nil)
+				switch {
+				case err != nil:
+					logger.Error().Msg("Unable to hash the configuration")
+				case p.lastConfiguration.Get() == confHash:
+					if event != nil {
+						logger.Debug().Msgf("Skipping Kubernetes event kind %T", event)
+					}
+				default:
+					p.lastConfiguration.Set(confHash)
+					configurationChan <- dynamic.Message{
+						ProviderName:  ProviderName,
+						Configuration: conf,
+					}
+				}
+			}
+			// WatchAll() has returned, which means the initial informer caches have
+			// synchronized. Build and publish that state immediately rather than relying
+			// on a subsequent informer event.
+			sendConfiguration(nil)
+
 			for {
 				select {
 				case <-ctxPool.Done():
 					return nil
 				case event := <-eventsChan:
-					// Note that event is the *first* event that came in during this
-					// throttling interval -- if we're hitting our throttle, we may have
-					// dropped events. This is fine, because we don't treat different
-					// event types differently. But if we do in the future, we'll need to
-					// track more information about the dropped events.
-					conf := p.loadConfigurationFromIngresses(ctxLog, k8sClient)
-
-					confHash, err := hashstructure.Hash(conf, nil)
-					switch {
-					case err != nil:
-						logger.Error().Msg("Unable to hash the configuration")
-					case p.lastConfiguration.Get() == confHash:
-						logger.Debug().Msgf("Skipping Kubernetes event kind %T", event)
-					default:
-						p.lastConfiguration.Set(confHash)
-						configurationChan <- dynamic.Message{
-							ProviderName:  ProviderName,
-							Configuration: conf,
-						}
-					}
+					sendConfiguration(event)
 
 					// If we're throttling, we sleep here for the throttle duration to
 					// enforce that we don't refresh faster than our throttle. time.Sleep
