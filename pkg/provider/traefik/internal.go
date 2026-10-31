@@ -58,6 +58,11 @@ func (i *Provider) Init() error {
 	return nil
 }
 
+// Provider name utilized for readiness.
+func (i *Provider) InitialConfigurationProviderName() string {
+	return ProviderName
+}
+
 func (i *Provider) createConfiguration(ctx context.Context) *dynamic.Configuration {
 	cfg := &dynamic.Configuration{
 		HTTP: &dynamic.HTTPConfiguration{
@@ -81,6 +86,7 @@ func (i *Provider) createConfiguration(ctx context.Context) *dynamic.Configurati
 
 	i.apiConfiguration(cfg)
 	i.pingConfiguration(cfg)
+	i.readyConfiguration(cfg)
 	i.restConfiguration(cfg)
 	i.prometheusConfiguration(cfg)
 	i.entryPointModels(cfg)
@@ -357,6 +363,25 @@ func (i *Provider) pingConfiguration(cfg *dynamic.Configuration) {
 	}
 
 	cfg.HTTP.Services["ping"] = &dynamic.Service{}
+}
+
+func (i *Provider) readyConfiguration(cfg *dynamic.Configuration) {
+	if i.staticCfg.Ready == nil {
+		return
+	}
+
+	if !i.staticCfg.Ready.ManualRouting {
+		cfg.HTTP.Routers["ready"] = &dynamic.Router{
+			EntryPoints: []string{i.staticCfg.Ready.EntryPoint},
+			Service:     "ready@internal",
+			Priority:    math.MaxInt,
+			Rule:        "PathPrefix(`/ready`)",
+			// "default" stands for the default rule syntax in Traefik v3, i.e. the v3 syntax.
+			RuleSyntax: "default",
+		}
+	}
+
+	cfg.HTTP.Services["ready"] = &dynamic.Service{}
 }
 
 func (i *Provider) restConfiguration(cfg *dynamic.Configuration) {

@@ -3,6 +3,7 @@ package aggregator
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -223,4 +224,42 @@ func (p *ProviderAggregator) launchProvider(configurationChan chan<- dynamic.Mes
 		log.Error().Err(err).Msgf("Cannot start the provider %T", prd)
 		return
 	}
+}
+
+// InitialConfigurationProviderNames returns the exact dynamic provider names
+// that participate in initial readiness.
+//
+// Call this only after all providers have been added to the aggregator and
+// before the ConfigurationWatcher starts.
+func (p *ProviderAggregator) InitialConfigurationProviderNames() []string {
+	namesSet := make(map[string]struct{})
+
+	add := func(prd provider.Provider) {
+		if prd == nil {
+			return
+		}
+		initialProvider, ok := prd.(provider.InitialConfigurationProvider)
+		if !ok {
+			return
+		}
+		name := initialProvider.InitialConfigurationProviderName()
+		if name == "" {
+			log.Error().Msgf("Initial configuration provider %T returned an empty provider name", prd)
+			return
+		}
+		namesSet[name] = struct{}{}
+	}
+
+	add(p.fileProvider)
+	for _, prd := range p.providers {
+		add(prd)
+	}
+	add(p.internalProvider)
+	names := make([]string, 0, len(namesSet))
+	for name := range namesSet {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	return names
 }

@@ -53,6 +53,11 @@ func (p *SwarmProvider) Init() error {
 	return nil
 }
 
+// Provider name utilized for readiness.
+func (p *SwarmProvider) InitialConfigurationProviderName() string {
+	return SwarmName
+}
+
 // Provide allows the docker provider to provide configurations to traefik using the given configuration channel.
 func (p *SwarmProvider) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
 	pool.GoCtx(func(routineCtx context.Context) {

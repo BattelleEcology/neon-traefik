@@ -49,6 +49,11 @@ func (p *Provider) Init(storeType, name string, config valkeyrie.Config) error {
 	return nil
 }
 
+// Provider name utilized for readiness.
+func (p *Provider) InitialConfigurationProviderName() string {
+	return p.name
+}
+
 // Provide allows the docker provider to provide configurations to traefik using the given configuration channel.
 func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
 	logger := log.With().Str(logs.ProviderName, p.name).Logger()

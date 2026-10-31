@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/provider/aggregator"
+	"github.com/traefik/traefik/v3/pkg/ready"
 	"github.com/traefik/traefik/v3/pkg/safe"
 	th "github.com/traefik/traefik/v3/pkg/testhelpers"
 	"github.com/traefik/traefik/v3/pkg/tls"
@@ -1040,4 +1042,130 @@ func TestEntryPointTLSResolvedOptions(t *testing.T) {
 	t.Cleanup(watcher.Stop)
 
 	<-run
+}
+
+func TestConfigurationWatcherReadinessWaitsForListeners(t *testing.T) {
+	routinesPool := safe.NewPool(t.Context())
+	t.Cleanup(routinesPool.Stop)
+
+	pvd := &mockProvider{
+		messages: []dynamic.Message{
+			{
+				ProviderName: "kubernetes",
+				Configuration: &dynamic.Configuration{
+					HTTP: th.BuildConfiguration(
+						th.WithRouters(
+							th.WithRouter(
+								"rt",
+								th.WithEntryPoints("web"),
+								th.WithServiceName("svc"),
+							),
+						),
+					),
+				},
+			},
+		},
+	}
+
+	watcher := NewConfigurationWatcher(
+		routinesPool,
+		pvd,
+		[]string{},
+		"",
+		false,
+	)
+	t.Cleanup(watcher.Stop)
+
+	tracker := ready.NewTracker(
+		[]string{"kubernetes"},
+		nil,
+	)
+	watcher.SetReadinessTracker(tracker)
+
+	listenerStarted := make(chan struct{})
+	allowListenerReturn := make(chan struct{})
+
+	// Ensure a failed assertion cannot leave the ConfigurationWatcher goroutine
+	// permanently blocked inside the listener.
+	t.Cleanup(func() {
+		select {
+		case <-allowListenerReturn:
+			// Already closed.
+		default:
+			close(allowListenerReturn)
+		}
+	})
+
+	var once sync.Once
+
+	watcher.AddListener(func(dynamic.Configuration) {
+		once.Do(func() {
+			close(listenerStarted)
+		})
+
+		<-allowListenerReturn
+	})
+
+	watcher.Start()
+
+	select {
+	case <-listenerStarted:
+	case <-time.After(time.Second):
+		t.Fatal("configuration listener was not called")
+	}
+
+	// The initial configuration has been received and classified as requiring
+	// application, but the listener chain has not completed yet.
+	assert.False(
+		t,
+		tracker.Ready(),
+		"readiness must remain false while configuration listeners are executing",
+	)
+
+	close(allowListenerReturn)
+
+	require.Eventually(
+		t,
+		tracker.Ready,
+		time.Second,
+		10*time.Millisecond,
+	)
+}
+
+func TestConfigurationWatcherReadinessNilInitialConfiguration(t *testing.T) {
+	routinesPool := safe.NewPool(t.Context())
+	t.Cleanup(routinesPool.Stop)
+
+	pvd := &mockProvider{
+		messages: []dynamic.Message{
+			{
+				ProviderName:  "kubernetes",
+				Configuration: nil,
+			},
+		},
+	}
+
+	watcher := NewConfigurationWatcher(
+		routinesPool,
+		pvd,
+		[]string{},
+		"",
+		false,
+	)
+	t.Cleanup(watcher.Stop)
+
+	tracker := ready.NewTracker(
+		[]string{"kubernetes"},
+		nil,
+	)
+	watcher.SetReadinessTracker(tracker)
+
+	watcher.Start()
+
+	require.Eventually(
+		t,
+		tracker.Ready,
+		time.Second,
+		10*time.Millisecond,
+	)
 }
